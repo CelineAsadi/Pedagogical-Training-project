@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, unique: true, minlength:6 },
   Gender: { type: String, enum: ["Female", "Male"], required: true },
   Classlevel: { type: Number, min: 3, max: 6, required: true },
-  TeachExp: { type: String, enum: ["0-2", "2-4","4+"], required: true},//Years of teaching experience
+  TeachExp: { type: String, enum: ["0-1", "2-5","5+"], required: true},//Years of teaching experience
 });
 
 const User = mongoose.model("User",userSchema);
