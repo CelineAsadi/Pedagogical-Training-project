@@ -92,9 +92,14 @@ const checkAuth=(req,res)=>{
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+const Forgetpassword = (req,res)=>{
+
+};
 module.exports = {
     Signup,
     Login,
     Logout,
-    checkAuth
+    checkAuth,
+    Forgetpassword
 }
