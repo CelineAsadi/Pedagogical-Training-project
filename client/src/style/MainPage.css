@@ -1,0 +1,126 @@
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 50px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Left side: Logo + Hello User */
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 80px; 
+}
+
+.logo img {
+  height: 60px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.username {
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hello {
+  color: #000;
+  font-weight: 500;
+}
+
+.name {
+  color: #0056b3;
+  font-weight: bold;
+}
+
+/* Right side: Nav links */
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+
+.nav-links li a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.nav-links li a:hover {
+  color: #0056b3;
+}
+
+/* Hero Section */
+.main-hero {
+  text-align: center;
+  padding: 100px 20px;
+  background: linear-gradient(135deg, #eef5ff, #ffffff);
+}
+
+.main-hero h1 {
+  font-size: 40px;
+  margin-bottom: 20px;
+  color: #222;
+}
+
+.main-hero h1 span {
+  color: #0056b3;
+}
+
+.main-hero p {
+  font-size: 18px;
+  color: #555;
+  margin-bottom: 40px;
+}
+
+/* Buttons Section */
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 40px; /* רווח ברור בין הכפתורים */
+}
+
+.btn {
+  padding: 14px 28px;
+  border: 2px solid #0056b3;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: #0056b3;
+}
+
+.btn:hover,
+.btn:focus {
+  background: #0056b3;
+  color: #fff;
+  outline: none;
+}
+
+/* Logout button */
+.logout-btn {
+  background: transparent;
+  border: none;
+  color: #000;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.logout-btn:hover,
+.logout-btn:focus {
+  color: #ff0000;
+  outline: none;
+}

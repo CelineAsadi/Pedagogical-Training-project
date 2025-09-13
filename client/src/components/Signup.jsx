@@ -44,7 +44,7 @@ const Signup = () => {
       });
 
       setSuccess(res.data.message || "Signup successful 🎉");
-      setTimeout(() => navigate("/Login"), 2000);
+      setTimeout(() => navigate("/MainPage"), 2000);
     } catch (err) {
       const msg = err.response?.data?.message || "Signup failed";
       setError(msg);

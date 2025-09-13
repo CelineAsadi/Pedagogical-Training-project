@@ -86,7 +86,12 @@ const Logout = (req,res)=>{
 
 const checkAuth=(req,res)=>{
     try {
-    res.status(200).json(req.user);
+    //res.status(200).json(req.user);
+    res.status(200).json({
+      FName: req.user.FName,
+      LName: req.user.LName,
+      Email: req.user.Email,
+    });
   } catch (err) {
     console.log("Error in checkAuth controller", err.message);
     res.status(500).json({ message: "Internal Server Error" });
@@ -96,10 +101,14 @@ const checkAuth=(req,res)=>{
 const Forgetpassword = (req,res)=>{
 
 };
+const MainPage = (req,res)=>{
+
+};
 module.exports = {
     Signup,
     Login,
     Logout,
     checkAuth,
-    Forgetpassword
+    Forgetpassword,
+    MainPage
 }

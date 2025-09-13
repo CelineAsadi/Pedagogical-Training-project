@@ -24,7 +24,7 @@ const Login = () => {
       setSuccess(res.data.message || "Login successful 🎉");
 
       setTimeout(() => {
-        navigate("/");
+        navigate("/MainPage");
       }, 1500);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Login failed";
