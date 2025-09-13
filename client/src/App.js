@@ -4,7 +4,8 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Home from './components/Home';
 import Login from './components/Login';
 import Signup from './components/Signup';
-
+import Contact from './components/Contact';
+import Forgetpassword from './components/Forgetpassword';
 
 
 function App() {
@@ -16,6 +17,9 @@ function App() {
         <Route path="/" element={<Home />} /> {/* Route for the Home page */}    
         <Route path="/Login" element={<Login />} /> {/* Route for the Login page */}
          <Route path="/Signup" element={<Signup />} /> {/* Route for the Signup page */}
+         <Route path="/Contact" element={<Contact />} /> {/* Route for the Contact page */}
+         <Route path="/Forgetpassword" element={<Forgetpassword />} /> {/* Route for the Forgetpassword page */}
+
       </Routes>
     </BrowserRouter>
   );
