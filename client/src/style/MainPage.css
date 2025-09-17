@@ -15,7 +15,7 @@
 .left-section {
   display: flex;
   align-items: center;
-  gap: 80px; 
+  gap: 80px;
 }
 
 .logo img {
@@ -84,31 +84,36 @@
   margin-bottom: 40px;
 }
 
+
 /* Buttons Section */
 .buttons {
   display: flex;
   justify-content: center;
-  gap: 40px; /* רווח ברור בין הכפתורים */
+  gap: 30px;
 }
 
 .btn {
-  padding: 14px 28px;
-  border: 2px solid #0056b3;
+  display: inline-block;      
+  padding: 10px 24px;
+  border: 2px solid #0056b3;    
   border-radius: 30px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: transparent;
+  background-color: transparent;
   color: #0056b3;
+  text-transform: uppercase;
 }
 
+/* Hover */
 .btn:hover,
 .btn:focus {
   background: #0056b3;
   color: #fff;
   outline: none;
 }
+
 
 /* Logout button */
 .logout-btn {
@@ -123,4 +128,76 @@
 .logout-btn:focus {
   color: #ff0000;
   outline: none;
+}
+
+/* Footer */
+.footer {
+  background: #0a192f;
+  color: #fff;
+  padding: 40px 20px 20px;
+  margin-top: 60px;
+}
+
+.footer-container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 40px;
+}
+
+.footer-section h3,
+.footer-section h4 {
+  margin-bottom: 15px;
+  color: #00aaff;
+}
+
+.footer-section p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #ccc;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-section ul li {
+  margin-bottom: 10px;
+}
+
+.footer-section ul li a {
+  text-decoration: none;
+  color: #ccc;
+  transition: color 0.3s;
+}
+
+.footer-section ul li a:hover {
+  color: #00aaff;
+}
+
+.social-icons {
+  display: flex;
+  gap: 15px;
+}
+
+.social-icons a {
+  font-size: 20px;
+  color: #ccc;
+  transition: color 0.3s;
+}
+
+.social-icons a:hover {
+  color: #00aaff;
+}
+
+.footer-bottom {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 13px;
+  border-top: 1px solid #1e2a47;
+  padding-top: 15px;
+  color: #888;
 }

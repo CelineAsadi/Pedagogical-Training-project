@@ -7,7 +7,8 @@ import Signup from './components/Signup';
 import Contact from './components/Contact';
 import Forgetpassword from './components/Forgetpassword';
 import MainPage from './components/MainPage';
-
+import PrivacyPolicy from './components/PrivacyPolicy';
+import Profile from './components/Profile';
 
 function App() {
   return (
@@ -21,6 +22,8 @@ function App() {
          <Route path="/Contact" element={<Contact />} /> {/* Route for the Contact page */}
          <Route path="/Forgetpassword" element={<Forgetpassword />} /> {/* Route for the Forgetpassword page */}
          <Route path="/MainPage" element={<MainPage />} /> {/* Route for the MainPage page */}
+        <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} /> {/* Route for the PrivacyPolicy page */}
+        <Route path="/Profile" element={<Profile />} /> {/* Route for the Profile page */}
 
       </Routes>
     </BrowserRouter>

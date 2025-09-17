@@ -44,10 +44,8 @@ const MainPage = () => {
         </div>
 
         <ul className="nav-links">
-          <li><a href="/">Home</a></li>
           <li><a href="/simulation">My Simulation</a></li>
-          <li><a href="/contact">Contact</a></li>
-          <li><a href="/profile">Profile</a></li>
+          <li><a href="/Profile">Profile</a></li>
           <li>
             <button className="logout-btn" onClick={handleLogout}>Logout</button>
           </li>
@@ -69,6 +67,47 @@ const MainPage = () => {
           <button className="btn">SET UP A CLASSROOM</button>
         </div>
       </section>
+     <footer className="footer">
+  <div className="footer-container">
+    {/* About */}
+    <div className="footer-section">
+      <h3>Pedagogical Training</h3>
+      <p>
+        AI-powered platform to help teachers improve classroom management
+        through realistic simulations.
+      </p>
+    </div>
+
+    {/* Quick Links */}
+    <div className="footer-section">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/PrivacyPolicy">Privacy Policy</a></li>
+      </ul>
+    </div>
+
+    {/* Social */}
+    <div className="footer-section">
+      <h4>Follow Us</h4>
+      <div className="social-icons">
+        <a href="https://github.com/CelineAsadi/Pedagogical-Training-project" target="_blank" rel="noreferrer">
+          <i className="fab fa-github"></i>
+        </a>
+        <a href="https://linkedin.com" target="_blank" rel="noreferrer">
+          <i className="fab fa-linkedin"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div className="footer-bottom">
+    <p>© 2025 Pedagogical Training. All rights reserved.</p>
+  </div>
+</footer>
+
+
     </div>
   );
 };
