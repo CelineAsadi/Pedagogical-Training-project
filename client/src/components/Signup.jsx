@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { axiosInstance } from "../lib/axios";
 import "../style/Signup.css";
+import toast from "react-hot-toast";
+import { authStore } from "../store/authStore";
 
 const Signup = () => {
+  const {signup} = authStore();
   const [formData, setFormData] = useState({
     fname: "",
     lname: "",
@@ -16,41 +17,40 @@ const Signup = () => {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const navigate = useNavigate();
+
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+  e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+  // ✅ check password confirmation
+  if (formData.password !== formData.confirmPassword) {
+    toast.error("Passwords do not match!");
+    return;
+  }
 
-    try {
-      const res = await axiosInstance.post("/auth/Signup", {
-        FName: formData.fname,
-        LName: formData.lname,
-        Email: formData.email,
-        password: formData.password,
-        Gender: formData.gender,
-        Classlevel: formData.classlevel,
-        TeachExp: formData.teachExp,
-      });
+  // ✅ validate email domain
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|outlook\.com)$/;
+  if (!emailRegex.test(formData.email)) {
+    toast.error("Only Gmail and Outlook emails are allowed!");
+    return;
+  }
 
-      setSuccess(res.data.message || "Signup successful 🎉");
-      setTimeout(() => navigate("/MainPage"), 2000);
-    } catch (err) {
-      const msg = err.response?.data?.message || "Signup failed";
-      setError(msg);
-      setTimeout(() => setError(""), 10000);
-    }
-  };
+  // ✅ proceed with signup
+  signup({
+    FName: formData.fname,
+    LName: formData.lname,
+    Email: formData.email,
+    password: formData.password,
+    Gender: formData.gender,
+    Classlevel: formData.classlevel,
+    TeachExp: formData.teachExp,
+  });
+};
+
 
   return (
     <div className="signup-page">

@@ -1,44 +1,39 @@
 import { useState } from "react";
-import { axiosInstance } from "../lib/axios";
+import { useNavigate } from "react-router-dom";
 import "../style/Forgetpassword.css";
+import { authStore } from "../store/authStore";
 
 const ForgetPassword = () => {
-  const [step, setStep] = useState(1); // 1 = email, 2 = code+password
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
+  const { VerifyEmail, ResetPassword } = authStore();
+  const navigate = useNavigate();
 
- 
+  // Step 1: Verify Email
   const handleVerifyEmail = async (e) => {
     e.preventDefault();
-    try {
-      const res = await axiosInstance.post("/auth/forgetpassword", { email });
-      setMessage(res.data.message || "Verification code sent to your email 📧");
-      setStep(2);
-    } catch (err) {
-      setMessage(err.response?.data?.message || "Failed to send verification code");
-    }
+    const ok = await VerifyEmail({ step: "request", Email: email });
+    if (ok) setStep(2);
   };
 
-
+  // Step 2: Reset Password
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       setMessage("Passwords do not match ❌");
       return;
     }
-    try {
-      const res = await axiosInstance.post("/auth/resetpassword", {
-        email,
-        code,
-        newPassword,
-      });
-      setMessage(res.data.message || "Password reset successful ✅");
-    } catch (err) {
-      setMessage(err.response?.data?.message || "Failed to reset password");
-    }
+    const ok = await ResetPassword({
+      step: "reset",
+      Email: email,
+      code,
+      newPassword,
+    });
+    if (ok) navigate("/Login"); // ✅ redirect only on success
   };
 
   return (

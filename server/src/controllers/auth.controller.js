@@ -1,6 +1,7 @@
 const User = require('../models/user.model');
 const bcrypt = require("bcryptjs");
 const generateToken = require("../lib/utlis");
+const {sendEmail, generateFourDigitCode} = require('../lib/mailer');
 
 const Signup = async (req,res)=>{
     const { FName, LName, Email, password, Gender, Classlevel, TeachExp } = req.body;
@@ -98,12 +99,72 @@ const checkAuth=(req,res)=>{
   }
 };
 
-const Forgetpassword = (req,res)=>{
+const verificationCodes = {};
 
+// ================= Forget Password ====================
+const Forgetpassword = async (req, res) => {
+  try {
+    const { step, Email, code, newPassword } = req.body;
+
+    // STEP 1: Request reset code
+    if (step === "request") {
+      if (!Email) return res.status(400).json({ message: "Email is required" });
+
+      const user = await User.findOne({ Email });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      // Generate 4-digit code
+      const verificationCode = generateFourDigitCode();
+      verificationCodes[Email] = verificationCode;
+
+      // Send email
+      await sendEmail(
+        Email,
+        "Password Reset Verification Code",
+        `<p>Your verification code is: <b>${verificationCode}</b></p>`
+      );
+
+      return res.status(200).json({ message: "Verification code sent to email" });
+    }
+
+    // STEP 2: Verify code & reset password
+    if (step === "reset") {
+      if (!Email || !code || !newPassword) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const savedCode = verificationCodes[Email];
+      if (!savedCode) return res.status(400).json({ message: "No reset request found" });
+
+      if (parseInt(code) !== savedCode) {
+        return res.status(400).json({ message: "Invalid verification code" });
+      }
+
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      await User.updateOne({ Email }, { password: hashedPassword });
+
+      // Clear the used code
+      delete verificationCodes[Email];
+
+      return res.status(200).json({ message: "Password reset successfully" });
+    }
+
+    res.status(400).json({ message: "Invalid step. Use 'request' or 'reset'" });
+  } catch (err) {
+    console.log("Error in Forgetpassword controller:", err.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
+
+
 const MainPage = (req,res)=>{
 
 };
+
+
 module.exports = {
     Signup,
     Login,

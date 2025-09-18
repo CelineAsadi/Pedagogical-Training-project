@@ -1,5 +1,6 @@
 const express = require("express");
 const authRoutes = require("./routes/auth.route");
+const supportRoutes = require("./routes/support.route");
 const cors = require("cors");
 const ConnectDB = require("./lib/db");
 const dotenv = require('dotenv');
@@ -18,6 +19,7 @@ app.use(cors({
 }))
 
 app.use('/api/auth',authRoutes);
+app.use('/api/supports',supportRoutes);
 
 app.listen(PORT, ()=>{
     console.log(`server started at port: ${PORT}`);

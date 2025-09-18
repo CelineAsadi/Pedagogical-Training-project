@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { axiosInstance } from "../lib/axios";
 import "../style/Contact.css";
+import { supportStore } from "../store/supportStore";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -9,16 +11,24 @@ const Contact = () => {
     message: "",
   });
 
+  const { contactUs } = supportStore();
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Contact form submitted:", formData);
-    alert("Thank you for contacting us! We'll get back to you soon.");
-    setFormData({ name: "", email: "", subject: "", message: "" });
+    contactUs(formData);
+    // try {
+    //   const res = await axiosInstance.post("/supports/support", formData);
+    //   alert(res.data.message || "Thank you for contacting us! We'll get back to you soon.");
+    //   setFormData({ name: "", email: "", subject: "", message: "" });
+    // } catch (err) {
+    //   alert(err.response?.data?.message || "Failed to send message ❌");
+    // }
   };
+
 
   return (
     <div className="contact-page">

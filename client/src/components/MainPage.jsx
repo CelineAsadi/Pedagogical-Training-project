@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; 
+import { Link } from "react-router-dom"; 
 import { axiosInstance } from "../lib/axios";
 import "../style/MainPage.css";
-
+import { authStore } from "../store/authStore";
 const MainPage = () => {
   const [user, setUser] = useState(null);
-  const navigate = useNavigate();
-
+  const {logout}=authStore();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -21,12 +20,13 @@ const MainPage = () => {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await axiosInstance.post("/auth/Logout");
-      navigate("/"); 
-    } catch (err) {
-      console.error("Logout failed:", err);
-    }
+    // try {
+    //   await axiosInstance.post("/auth/Logout");
+    //   // navigate("/"); 
+    // } catch (err) {
+    //   console.error("Logout failed:", err);
+    // }
+    logout();
   };
 
   return (
@@ -43,14 +43,14 @@ const MainPage = () => {
           </div>
         </div>
 
-        <ul className="nav-links">
-          <li><a href="/simulation">My Simulation</a></li>
-          <li><a href="/Profile">Profile</a></li>
-          <li>
-            <button className="logout-btn" onClick={handleLogout}>Logout</button>
-          </li>
-          <li><a href="/lang">🌐 ENG</a></li>
-        </ul>
+       <ul className="nav-links">
+        <li><Link to="/simulation">My Simulation</Link></li>
+        <li><Link to="/Profile">Profile</Link></li>
+        <li>
+          <button className="logout-btn" onClick={handleLogout}>Logout</button>
+        </li>
+        <li><Link to="/lang">🌐 ENG</Link></li>
+      </ul>
       </nav>
 
       {/* 🔹 Main Section */}
@@ -82,8 +82,7 @@ const MainPage = () => {
     <div className="footer-section">
       <h4>Quick Links</h4>
       <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/contact">Contact</a></li>
+        <li><a href="/contact">Contact</a></li> {/*link*/} 
         <li><a href="/PrivacyPolicy">Privacy Policy</a></li>
       </ul>
     </div>

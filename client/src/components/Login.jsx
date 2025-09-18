@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../lib/axios";
 import "../style/Login.css";
+import { authStore } from "../store/authStore";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -9,31 +10,33 @@ const Login = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+  const {login} = authStore();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    // setError("");
+    // setSuccess("");
 
-    try {
-      const res = await axiosInstance.post("/auth/login", {
-        Email: email,
-        password,
-      });
+    // try {
+    //   const res = await axiosInstance.post("/auth/login", {
+    //     Email: email,
+    //     password,
+    //   });
 
-      setSuccess(res.data.message || "Login successful 🎉");
+    //   setSuccess(res.data.message || "Login successful 🎉");
 
-      setTimeout(() => {
-        navigate("/MainPage");
-      }, 1500);
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || "Login failed";
-      setError(errorMessage);
+    //   // setTimeout(() => {
+    //   //   //navigate("/MainPage");
+    //   // }, 1500);
+    // } catch (err) {
+    //   const errorMessage = err.response?.data?.message || "Login failed";
+    //   setError(errorMessage);
 
-      setTimeout(() => {
-        setError("");
-      }, 1000);
-    }
+    //   // setTimeout(() => {
+    //   //   setError("");
+    //   // }, 1000);
+    // }
+    login({Email:email,password});
   };
 
   return (

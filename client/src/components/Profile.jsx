@@ -10,7 +10,7 @@ const Profile = () => {
         </div>
         <ul className="profile-nav-links">
           <li><a href="/simulation">My Simulation</a></li>
-          <li><a href="/profile" className="active">Profile</a></li>
+          <li><a href="/Profile" className="active">Profile</a></li>
           <li><button className="logout-btn">Logout</button></li>
           <li><a href="/lang">🌐 ENG</a></li>
         </ul>
