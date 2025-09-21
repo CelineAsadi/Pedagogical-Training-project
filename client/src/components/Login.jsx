@@ -14,28 +14,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // setError("");
-    // setSuccess("");
-
-    // try {
-    //   const res = await axiosInstance.post("/auth/login", {
-    //     Email: email,
-    //     password,
-    //   });
-
-    //   setSuccess(res.data.message || "Login successful 🎉");
-
-    //   // setTimeout(() => {
-    //   //   //navigate("/MainPage");
-    //   // }, 1500);
-    // } catch (err) {
-    //   const errorMessage = err.response?.data?.message || "Login failed";
-    //   setError(errorMessage);
-
-    //   // setTimeout(() => {
-    //   //   setError("");
-    //   // }, 1000);
-    // }
     login({Email:email,password});
   };
 

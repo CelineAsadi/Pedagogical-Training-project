@@ -20,12 +20,6 @@ const MainPage = () => {
   }, []);
 
   const handleLogout = async () => {
-    // try {
-    //   await axiosInstance.post("/auth/Logout");
-    //   // navigate("/"); 
-    // } catch (err) {
-    //   console.error("Logout failed:", err);
-    // }
     logout();
   };
 

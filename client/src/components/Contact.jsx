@@ -20,13 +20,6 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     contactUs(formData);
-    // try {
-    //   const res = await axiosInstance.post("/supports/support", formData);
-    //   alert(res.data.message || "Thank you for contacting us! We'll get back to you soon.");
-    //   setFormData({ name: "", email: "", subject: "", message: "" });
-    // } catch (err) {
-    //   alert(err.response?.data?.message || "Failed to send message ❌");
-    // }
   };
 
 
