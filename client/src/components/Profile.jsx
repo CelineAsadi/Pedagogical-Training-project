@@ -1,6 +1,13 @@
 import "../style/Profile.css";
+import { authStore } from "../store/authStore";
+
+
 
 const Profile = () => {
+  const {logout}=authStore();
+  const handleLogout = async () => {
+    logout();
+  };
   return (
     <div className="profile-page">
       {/* Navbar */}
@@ -11,7 +18,9 @@ const Profile = () => {
         <ul className="profile-nav-links">
           <li><a href="/simulation">My Simulation</a></li>
           <li><a href="/Profile" className="active">Profile</a></li>
-          <li><button className="logout-btn">Logout</button></li>
+           <li>
+          <button className="logout-btn" onClick={handleLogout}>Logout</button>
+        </li>
           <li><a href="/lang">🌐 ENG</a></li>
         </ul>
       </nav>
