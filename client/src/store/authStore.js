@@ -15,16 +15,20 @@ export const authStore = create((set,get)=>({
     },
 
     login: async(data)=>{
-        try{
-            const res = await axiosInstance.post('/auth/Login',data);
-            set({authUser: res.data});
-            toast.success("Logged in succesfully");
-        } catch(err){
-            console.log("Error in Login: ",err);
-            toast.error(err.response.data.message);
-            set({authUser:null});
-        }
-    },
+    try{
+        const res = await axiosInstance.post('/auth/Login',data);
+        set({authUser: res.data});
+        toast.success("Logged in succesfully");
+    } catch(err){
+        console.log("Error in Login: ",err);
+
+        const message = err.response?.data?.message || "Login failed";
+        toast.error(message);
+
+        set({authUser:null});
+    }
+},
+
     logout: async()=>{
         try{
             const res = await axiosInstance.post('/auth/Logout');
@@ -69,4 +73,15 @@ export const authStore = create((set,get)=>({
             return false;
         }
     },
+    updateProfile: async (data)=> {
+  try {
+    const res = await axiosInstance.put("/auth/Profile", data);
+    set({authUser: res.data });
+    toast.success("Profile updated successfully");
+  } catch(err) {
+    console.log("error in update updateProfile:", err);
+    toast.error(err.response?.data?.message || "Failed to updateProfile");
+  }
+},
+
 }));

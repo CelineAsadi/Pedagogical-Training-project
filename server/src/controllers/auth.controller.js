@@ -42,6 +42,9 @@ const Signup = async (req,res)=>{
       FName: newUser.FName,
       LName: newUser.LName,
       Email: newUser.Email,
+      Gender: newUser.Gender,
+      Classlevel: newUser.Classlevel,
+      TeachExp: newUser.TeachExp
     });
 
   } catch (err) {
@@ -67,6 +70,9 @@ const Login = async(req,res)=>{
       FName: user.FName,
       LName: user.LName,
       Email: user.Email,
+      Gender: user.Gender,
+      Classlevel: user.Classlevel,
+      TeachExp: user.TeachExp
     });
   } catch (err) {
     console.log("Error in login controller", err.message);
@@ -92,6 +98,9 @@ const checkAuth=(req,res)=>{
       FName: req.user.FName,
       LName: req.user.LName,
       Email: req.user.Email,
+      Gender: req.user.Gender,
+      Classlevel: req.user.Classlevel,
+      TeachExp: req.user.TeachExp,
     });
   } catch (err) {
     console.log("Error in checkAuth controller", err.message);
@@ -163,7 +172,38 @@ const Forgetpassword = async (req, res) => {
 const MainPage = (req,res)=>{
 
 };
+// ======= Update Profile =========
+const updateProfile = async (req, res) => {
+  try {
+    const { FName, LName, Email, Gender, Classlevel, TeachExp } = req.body;
+    const userId = req.user._id;
 
+    // אימות אימייל
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|outlook\.com)$/;
+    if (Email && !emailRegex.test(Email)) {
+      return res.status(400).json({ message: "Only Gmail and Outlook emails are allowed!" });
+    }
+
+    const updateData = {};
+    if (FName) updateData.FName = FName;
+    if (LName) updateData.LName = LName;
+    if (Email) updateData.Email = Email;
+    if (Gender) updateData.Gender = Gender;
+    if (Classlevel) updateData.Classlevel = Classlevel;
+    if (TeachExp) updateData.TeachExp = TeachExp;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ).select("-password");
+
+    res.status(200).json(updatedUser);
+  } catch (err) {
+    console.log("Error in updateProfile:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 module.exports = {
     Signup,
@@ -171,5 +211,6 @@ module.exports = {
     Logout,
     checkAuth,
     Forgetpassword,
-    MainPage
+    MainPage,
+    updateProfile
 }

@@ -48,6 +48,8 @@ const Signup = () => {
     Gender: formData.gender,
     Classlevel: formData.classlevel,
     TeachExp: formData.teachExp,
+    ProfileImage: formData.gender === "Female" ? "/female.png" : "/male.png"
+
   });
 };
 
