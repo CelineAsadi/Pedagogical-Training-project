@@ -1,93 +1,49 @@
-.virtual-container {
-  display: flex;
-  flex-direction: row;
-  min-height: 100vh;
-  background: #f9fafb; /* צבע רקע */
+/* Fullscreen canvas */
+.vc-fullscreen {
+  position: fixed;
+  inset: 0;
+  background: #f9fafb;
+  overflow: hidden;
+}
+.vc-fullscreen canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 
-/* החלק של הקנבס */
-.virtual-canvas {
-  flex: 3;
-  height: 70vh; /* במסך קטן */
-}
-@media (min-width: 768px) {
-  .virtual-canvas {
-    height: 100vh; /* במסך גדול */
-  }
-}
-
-/* פאנל צד */
-.virtual-panel {
-  flex: 1;
-  background: #ffffff;
-  padding: 1rem;
-  border-left: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  font-family: Arial, sans-serif;
-}
-.virtual-panel h2 {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-.virtual-panel div {
-  margin-bottom: 0.5rem;
-}
-
-/* כפתור */
-.virtual-button {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  border-radius: 6px;
-  background-color: #2563eb;
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  margin-bottom: 1rem;
-}
-.virtual-button:hover {
-  background-color: #1e40af;
-}
-
-/* רשימת סוגי ההפרעות */
-.virtual-types-title {
-  font-size: 0.9rem;
-  color: #4b5563;
-  margin-bottom: 0.25rem;
-}
-.virtual-types-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 0.85rem;
-}
-.virtual-types-list li {
-  display: flex;
-  justify-content: space-between;
-  padding: 2px 0;
-}
-
-/* תוויות מעל התלמידים */
+/* Student name tag */
 .student-label {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid #e5e7eb;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.7rem;
-  padding: 0 4px;
+  padding: 2px 6px;
   text-align: center;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 
-/* ניתן לשימוש למורה אם רוצים */
-.teacher-label {
-  background: rgba(251, 191, 36, 0.9); /* צהוב */
-  border: 1px solid #f59e0b;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  padding: 2px 6px;
-  font-weight: bold;
-  text-align: center;
+/* Top-left toolbar */
+.vc-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+  user-select: none;
+}
+.vc-btn {
+  background: rgba(255,255,255,0.95);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  cursor: pointer;
+}
+.vc-btn:hover { background: #fff; }
+.vc-btn.is-active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
 }
