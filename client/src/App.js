@@ -11,6 +11,8 @@ import Profile from './components/Profile';
 import { authStore } from './store/authStore';
 import { useEffect } from 'react';
 import { Toaster } from "react-hot-toast";
+import VirtualClassroom from './components/VirtualClassroom';
+
 
 function App() {
   const { authUser, checkAuth } = authStore();
@@ -55,6 +57,8 @@ function App() {
             path="/Profile"
             element={authUser ? <Profile /> : <Navigate to="/" replace />}
           />
+          
+        <Route path="/classroom" element={<VirtualClassroom />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<Navigate to="/" replace />} />

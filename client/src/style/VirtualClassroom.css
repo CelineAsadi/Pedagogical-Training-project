@@ -1,0 +1,93 @@
+.virtual-container {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  background: #f9fafb; /* צבע רקע */
+}
+
+/* החלק של הקנבס */
+.virtual-canvas {
+  flex: 3;
+  height: 70vh; /* במסך קטן */
+}
+@media (min-width: 768px) {
+  .virtual-canvas {
+    height: 100vh; /* במסך גדול */
+  }
+}
+
+/* פאנל צד */
+.virtual-panel {
+  flex: 1;
+  background: #ffffff;
+  padding: 1rem;
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
+}
+.virtual-panel h2 {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.virtual-panel div {
+  margin-bottom: 0.5rem;
+}
+
+/* כפתור */
+.virtual-button {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background-color: #2563eb;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-bottom: 1rem;
+}
+.virtual-button:hover {
+  background-color: #1e40af;
+}
+
+/* רשימת סוגי ההפרעות */
+.virtual-types-title {
+  font-size: 0.9rem;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+.virtual-types-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.virtual-types-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+/* תוויות מעל התלמידים */
+.student-label {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  padding: 0 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ניתן לשימוש למורה אם רוצים */
+.teacher-label {
+  background: rgba(251, 191, 36, 0.9); /* צהוב */
+  border: 1px solid #f59e0b;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  padding: 2px 6px;
+  font-weight: bold;
+  text-align: center;
+}
