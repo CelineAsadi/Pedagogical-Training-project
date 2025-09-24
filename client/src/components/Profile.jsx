@@ -3,7 +3,7 @@ import { authStore } from "../store/authStore";
 import { useState, useEffect } from "react";
 
 const Profile = () => {
-  const { authUser, logout, updateProfile } = authStore();
+  const { authUser, logout, updateProfile, verifyNewEmail } = authStore();
 
   const [formData, setFormData] = useState({
     FName: "",
@@ -13,6 +13,10 @@ const Profile = () => {
     Classlevel: "",
     TeachExp: ""
   });
+
+  const [emailVerified, setEmailVerified] = useState(true); 
+  const [verificationCode, setVerificationCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
 
   useEffect(() => {
     if (authUser) {
@@ -24,21 +28,41 @@ const Profile = () => {
         Classlevel: authUser.Classlevel || "",
         TeachExp: authUser.TeachExp || ""
       });
+      setEmailVerified(true); 
     }
   }, [authUser]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    if (e.target.name === "Email" && e.target.value !== authUser?.Email) {
+      setEmailVerified(false); 
+      setCodeSent(false);
+    }
+  };
+
+
+  const handleSendCode = async () => {
+    const ok = await verifyNewEmail({ step: "request", Email: formData.Email });
+    if (ok) setCodeSent(true);
+  };
+
+
+  const handleVerifyCode = async () => {
+    const ok = await verifyNewEmail({ step: "verify", Email: formData.Email, code: verificationCode });
+    if (ok) setEmailVerified(true);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!emailVerified) {
+      alert("Please verify your new email before updating!");
+      return;
+    }
 
-    // מוסיף את השדה ProfileImage לפי המין
     const updatedData = {
       ...formData,
-      ProfileImage:
-        formData.Gender === "Female" ? "/female.png" : "/male.png",
+      ProfileImage: formData.Gender === "Female" ? "/female.png" : "/male.png",
     };
 
     updateProfile(updatedData);
@@ -54,6 +78,9 @@ const Profile = () => {
         Classlevel: authUser.Classlevel || "",
         TeachExp: authUser.TeachExp || ""
       });
+      setEmailVerified(true);
+      setCodeSent(false);
+      setVerificationCode("");
     }
   };
 
@@ -74,7 +101,6 @@ const Profile = () => {
 
       {/* Profile Form */}
       <div className="profile-container">
-        {/* תמונת פרופיל */}
         <div className="profile-avatar">
           <img
             src={formData.Gender === "Female" ? "/female.png" : "/male.png"}
@@ -104,6 +130,27 @@ const Profile = () => {
             <div className="form-group">
               <label>Email</label>
               <input type="email" name="Email" value={formData.Email} onChange={handleChange}/>
+              {!emailVerified && (
+                <div className="email-verification">
+                  {!codeSent ? (
+                    <button type="button" className="btn small" onClick={handleSendCode}>
+                      Send Code
+                    </button>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Enter verification code"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                      />
+                      <button type="button" className="btn small" onClick={handleVerifyCode}>
+                        Verify
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -140,7 +187,9 @@ const Profile = () => {
 
             <div className="form-buttons">
               <button type="button" className="btn cancel" onClick={handleCancel}>Cancel</button>
-              <button type="submit" className="btn update">Update</button>
+              <button type="submit" className="btn update" disabled={!emailVerified}>
+                Update
+              </button>
             </div>
           </form>
         </div>

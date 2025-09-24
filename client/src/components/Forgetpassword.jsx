@@ -13,14 +13,14 @@ const ForgetPassword = () => {
   const { VerifyEmail, ResetPassword } = authStore();
   const navigate = useNavigate();
 
-  // Step 1: Verify Email
+  
   const handleVerifyEmail = async (e) => {
     e.preventDefault();
     const ok = await VerifyEmail({ step: "request", Email: email });
     if (ok) setStep(2);
   };
 
-  // Step 2: Reset Password
+
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
@@ -33,7 +33,7 @@ const ForgetPassword = () => {
       code,
       newPassword,
     });
-    if (ok) navigate("/Login"); // ✅ redirect only on success
+    if (ok) navigate("/Login"); 
   };
 
   return (

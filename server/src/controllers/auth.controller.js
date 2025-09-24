@@ -32,11 +32,8 @@ const Signup = async (req,res)=>{
       Classlevel,
       TeachExp
     });
-
     await newUser.save();
-
     generateToken(newUser._id, res);
-
     res.status(201).json({
       _id: newUser._id,
       FName: newUser.FName,
@@ -46,7 +43,6 @@ const Signup = async (req,res)=>{
       Classlevel: newUser.Classlevel,
       TeachExp: newUser.TeachExp
     });
-
   } catch (err) {
     console.log("Error in signup controller", err.message);
     res.status(500).json({ message: "Internal Server Error" });
@@ -56,15 +52,12 @@ const Signup = async (req,res)=>{
 const Login = async(req,res)=>{
     const { Email, password } = req.body;
     console.log(req.body);
-
   try {
     const user = await User.findOne({ Email });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-
     generateToken(user._id, res);
-
     res.status(200).json({
       _id: user._id,
       FName: user.FName,
@@ -93,7 +86,6 @@ const Logout = (req,res)=>{
 
 const checkAuth=(req,res)=>{
     try {
-    //res.status(200).json(req.user);
     res.status(200).json({
       FName: req.user.FName,
       LName: req.user.LName,
@@ -114,60 +106,41 @@ const verificationCodes = {};
 const Forgetpassword = async (req, res) => {
   try {
     const { step, Email, code, newPassword } = req.body;
-
-    // STEP 1: Request reset code
     if (step === "request") {
       if (!Email) return res.status(400).json({ message: "Email is required" });
-
       const user = await User.findOne({ Email });
       if (!user) return res.status(404).json({ message: "User not found" });
-
-      // Generate 4-digit code
       const verificationCode = generateFourDigitCode();
       verificationCodes[Email] = verificationCode;
-
-      // Send email
       await sendEmail(
         Email,
         "Password Reset Verification Code",
         `<p>Your verification code is: <b>${verificationCode}</b></p>`
       );
-
       return res.status(200).json({ message: "Verification code sent to email" });
     }
-
-    // STEP 2: Verify code & reset password
     if (step === "reset") {
       if (!Email || !code || !newPassword) {
         return res.status(400).json({ message: "All fields are required" });
       }
-
       const savedCode = verificationCodes[Email];
       if (!savedCode) return res.status(400).json({ message: "No reset request found" });
 
       if (parseInt(code) !== savedCode) {
         return res.status(400).json({ message: "Invalid verification code" });
       }
-
-      // Hash new password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
-
       await User.updateOne({ Email }, { password: hashedPassword });
-
-      // Clear the used code
       delete verificationCodes[Email];
-
       return res.status(200).json({ message: "Password reset successfully" });
     }
-
     res.status(400).json({ message: "Invalid step. Use 'request' or 'reset'" });
   } catch (err) {
     console.log("Error in Forgetpassword controller:", err.message);
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 const MainPage = (req,res)=>{
 
@@ -177,13 +150,10 @@ const updateProfile = async (req, res) => {
   try {
     const { FName, LName, Email, Gender, Classlevel, TeachExp } = req.body;
     const userId = req.user._id;
-
-    // אימות אימייל
     const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|outlook\.com)$/;
     if (Email && !emailRegex.test(Email)) {
       return res.status(400).json({ message: "Only Gmail and Outlook emails are allowed!" });
     }
-
     const updateData = {};
     if (FName) updateData.FName = FName;
     if (LName) updateData.LName = LName;
@@ -191,16 +161,60 @@ const updateProfile = async (req, res) => {
     if (Gender) updateData.Gender = Gender;
     if (Classlevel) updateData.Classlevel = Classlevel;
     if (TeachExp) updateData.TeachExp = TeachExp;
-
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateData,
       { new: true }
     ).select("-password");
-
     res.status(200).json(updatedUser);
   } catch (err) {
     console.log("Error in updateProfile:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ===== Verify Email Update =====
+const verificationCodesForEmailUpdate = {}; 
+
+const verifyEmailUpdate = async (req, res) => {
+  try {
+    const { step, Email, code } = req.body;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|outlook\.com)$/;
+    if (Email && !emailRegex.test(Email)) {
+      return res.status(400).json({ message: "Only Gmail and Outlook emails are allowed!" });
+    }
+    if (step === "request") {
+      if (!Email) return res.status(400).json({ message: "Email is required" });
+      const existing = await User.findOne({ Email });
+      if (existing) {
+        return res.status(400).json({ message: "This email is already in use" });
+      }
+      const verificationCode = generateFourDigitCode();
+      verificationCodesForEmailUpdate[Email] = verificationCode;
+      await sendEmail(
+        Email,
+        "Verify your new email",
+        `<p>Your verification code is: <b>${verificationCode}</b></p>`
+      );
+      return res.status(200).json({ message: "Verification code sent" });
+    }
+    if (step === "verify") {
+      if (!Email || !code) {
+        return res.status(400).json({ message: "Email and code are required" });
+      }
+      const savedCode = verificationCodesForEmailUpdate[Email];
+      if (!savedCode) {
+        return res.status(400).json({ message: "No verification request found" });
+      }
+      if (parseInt(code) !== savedCode) {
+        return res.status(400).json({ message: "Invalid verification code" });
+      }
+      delete verificationCodesForEmailUpdate[Email];
+      return res.status(200).json({ message: "Email verified successfully" });
+    }
+    res.status(400).json({ message: "Invalid step. Use 'request' or 'verify'" });
+  } catch (err) {
+    console.log("Error in verifyEmailUpdate:", err.message);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -212,5 +226,6 @@ module.exports = {
     checkAuth,
     Forgetpassword,
     MainPage,
-    updateProfile
+    updateProfile,
+    verifyEmailUpdate
 }

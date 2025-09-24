@@ -4,12 +4,12 @@ const support = async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
 
-    // 1. Basic validation
+ 
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // 2. Build email content
+ 
     const htmlMessage = `
       <h2>New Contact Form Submission</h2>
       <p><strong>Name:</strong> ${name}</p>
@@ -19,14 +19,14 @@ const support = async (req, res) => {
       <p>${message}</p>
     `;
 
-    // 3. Send email to your support inbox
+ 
     await sendEmail(
-      process.env.SUPPORT_EMAIL || process.env.EMAIL_ADMIN, // receiver
+      process.env.SUPPORT_EMAIL || process.env.EMAIL_ADMIN, 
       `📩 Contact Form: ${subject}`,
       htmlMessage
     );
 
-    // 4. Confirmation response
+   
     res.status(200).json({ message: "Your message has been sent successfully ✅" });
   } catch (err) {
     console.error("Error in support controller:", err.message);

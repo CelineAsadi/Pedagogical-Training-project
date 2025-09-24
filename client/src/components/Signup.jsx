@@ -4,7 +4,8 @@ import toast from "react-hot-toast";
 import { authStore } from "../store/authStore";
 
 const Signup = () => {
-  const {signup} = authStore();
+  const { signup, verifyNewEmail } = authStore();
+
   const [formData, setFormData] = useState({
     fname: "",
     lname: "",
@@ -15,44 +16,54 @@ const Signup = () => {
     classlevel: "",
     teachExp: "",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
+  const [verificationCode, setVerificationCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleSendCode = async () => {
+    const success = await verifyNewEmail({step: "request",Email: formData.email, });
+    if (success)  setCodeSent(true);
+  };
+
+
+  const handleVerifyCode = async () => {
+    const success = await verifyNewEmail({ step: "verify",Email: formData.email,code: verificationCode,});
+
+    if (success) {
+      setEmailVerified(true);
+      setCodeSent(false);}
+  };
+
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  // ✅ check password confirmation
-  if (formData.password !== formData.confirmPassword) {
-    toast.error("Passwords do not match!");
-    return;
-  }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
 
-  // ✅ validate email domain
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|outlook\.com)$/;
-  if (!emailRegex.test(formData.email)) {
-    toast.error("Only Gmail and Outlook emails are allowed!");
-    return;
-  }
+    if (!emailVerified) {
+      toast.error("Please verify your email before signing up!");
+      return;
+    }
 
-  // ✅ proceed with signup
-  signup({
-    FName: formData.fname,
-    LName: formData.lname,
-    Email: formData.email,
-    password: formData.password,
-    Gender: formData.gender,
-    Classlevel: formData.classlevel,
-    TeachExp: formData.teachExp,
-    ProfileImage: formData.gender === "Female" ? "/female.png" : "/male.png"
-
-  });
-};
-
+    signup({
+      FName: formData.fname,
+      LName: formData.lname,
+      Email: formData.email,
+      password: formData.password,
+      Gender: formData.gender,
+      Classlevel: formData.classlevel,
+      TeachExp: formData.teachExp,
+      ProfileImage: formData.gender === "Female" ? "/female.png" : "/male.png",
+    });
+  };
 
   return (
     <div className="signup-page">
@@ -60,11 +71,8 @@ const Signup = () => {
         <h2>Create Account</h2>
         <p className="signup-subtitle">Join us today and start your journey 🚀</p>
 
-        {error && <p className="error">{error}</p>}
-        {success && <p className="success">{success}</p>}
-
         <form className="signup-form" onSubmit={handleSubmit}>
-   
+
           <div className="form-column">
             <label>First Name</label>
             <input
@@ -94,10 +102,42 @@ const Signup = () => {
               value={formData.email}
               onChange={handleChange}
               required
+              disabled={emailVerified}
             />
+
+        
+            {!emailVerified ? (
+              !codeSent ? (
+                <button
+                  type="button"
+                  className="btn-auth"
+                  onClick={handleSendCode}
+                >
+                  Send Code
+                </button>
+              ) : (
+                <div className="email-verification">
+                  <input
+                    type="text"
+                    placeholder="Enter verification code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn-auth"
+                    onClick={handleVerifyCode}
+                  >
+                    Verify
+                  </button>
+                </div>
+              )
+            ) : (
+              <p className="verified-text">✅ Verified</p>
+            )}
           </div>
 
-       
+    
           <div className="form-column">
             <label>Password</label>
             <input
@@ -160,7 +200,6 @@ const Signup = () => {
           </div>
         </form>
 
-       
         <button type="submit" className="btn-signup" onClick={handleSubmit}>
           Sign Up
         </button>

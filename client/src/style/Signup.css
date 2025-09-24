@@ -85,3 +85,46 @@
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0,86,179,0.3);
 }
+
+
+.btn-auth {
+  background: linear-gradient(90deg, #0056b3, #007bff);
+  color: #fff;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-auth:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,86,179,0.3);
+}
+
+
+.email-verification {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: -10px;
+  justify-content: center;
+}
+
+.email-verification input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  max-width: 180px;
+}
+
+.verified-text {
+  color: green;
+  font-weight: bold;
+  margin-top: 8px;
+  font-size: 14px;
+}

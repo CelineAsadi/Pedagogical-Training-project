@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";   // ⬅️ הוספתי useNavigate
+import { Link, useNavigate } from "react-router-dom";  
 import { axiosInstance } from "../lib/axios";
 import "../style/MainPage.css";
 import { authStore } from "../store/authStore";
@@ -7,7 +7,7 @@ import { authStore } from "../store/authStore";
 const MainPage = () => {
   const [user, setUser] = useState(null);
   const { logout } = authStore();
-  const navigate = useNavigate();                      // ⬅️ יצירת הניווט
+  const navigate = useNavigate();                    
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -59,7 +59,6 @@ const MainPage = () => {
           and start improving your teaching skills 🚀
         </p>
         <div className="buttons">
-          {/* ⬅️ הוספתי onClick לנווט */}
           <button
             className="btn"
             onClick={() => navigate("/classroom")}

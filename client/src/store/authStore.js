@@ -66,7 +66,7 @@ export const authStore = create((set,get)=>({
         try{
             await axiosInstance.post("/auth/Forgetpassword",data);
             toast.success('Password reset successfully');
-            return true; // ✅ tell component that reset worked
+            return true;
         }catch(err){
             console.log('Error in reseting password', err);
             toast.error(err.response?.data?.message || "Reset failed");
@@ -83,5 +83,17 @@ export const authStore = create((set,get)=>({
     toast.error(err.response?.data?.message || "Failed to updateProfile");
   }
 },
+verifyNewEmail: async(data) => {
+  try {
+    const res = await axiosInstance.post("/auth/verify-email-update", data);
+    toast.success(res.data.message);
+    return true;
+  } catch(err) {
+    console.log("Error in verifyNewEmail:", err);
+    toast.error(err.response?.data?.message || "Failed to verify email");
+    return false;
+  }
+},
+
 
 }));
