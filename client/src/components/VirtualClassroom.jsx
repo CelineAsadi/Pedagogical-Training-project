@@ -1,13 +1,14 @@
+// src/components/VirtualClassroom.jsx
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
-import { TransformControls, Html, RoundedBox } from "@react-three/drei";
-
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { TransformControls, Html, RoundedBox, ContactShadows } from "@react-three/drei";
 import "../style/VirtualClassroom.css";
+import * as THREE from "three";
 
 /**
  * Fullscreen classroom with EASY controls:
  * - Click an item → on-object gizmo (move arrows + rotate ⟲/⟳ + reset)
- * - Drag to move freely (Translate only) – no need for keyboard
+ * - Drag to move freely (Translate only)
  * - Double-click item = quick 90° rotate
  * - Camera auto-fits content so nothing gets cut
  */
@@ -27,8 +28,8 @@ const DEFAULT_CLASS = {
   },
 };
 
-// Room (for walls/floor)
-const ROOM = { width: 28, depth: 36, wallHeight: 3.2 };
+// Room (realistic ~8x10m)
+const ROOM = { width: 8, depth: 10, wallHeight: 3.1 };
 const HALF_W = ROOM.width / 2;
 const HALF_D = ROOM.depth / 2;
 
@@ -49,26 +50,26 @@ function Hair({ style = "short", color = "#2b2b2b" }) {
     case "afro":
       return (
         <group position={[0, 0.68, 0]}>
-          <mesh position={[0, 0.05, 0]}><sphereGeometry args={[0.22, 24, 24]} /><meshStandardMaterial color={color} /></mesh>
+          <mesh castShadow><sphereGeometry args={[0.22, 24, 24]} /><meshStandardMaterial color={color} /></mesh>
         </group>
       );
     case "bun":
       return (
         <group position={[0, 0.7, -0.05]}>
-          <mesh><sphereGeometry args={[0.12, 20, 20]} /><meshStandardMaterial color={color} /></mesh>
-          <mesh position={[0, -0.08, 0.04]}><boxGeometry args={[0.42, 0.18, 0.3]} /><meshStandardMaterial color={color} /></mesh>
+          <mesh castShadow><sphereGeometry args={[0.12, 20, 20]} /><meshStandardMaterial color={color} /></mesh>
+          <mesh castShadow position={[0, -0.08, 0.04]}><boxGeometry args={[0.42, 0.18, 0.3]} /><meshStandardMaterial color={color} /></mesh>
         </group>
       );
     case "long":
       return (
         <group position={[0, 0.65, 0]}>
-          <mesh position={[0, 0.02, -0.05]}><boxGeometry args={[0.48, 0.28, 0.35]} /><meshStandardMaterial color={color} /></mesh>
+          <mesh castShadow position={[0, 0.02, -0.05]}><boxGeometry args={[0.48, 0.28, 0.35]} /><meshStandardMaterial color={color} /></mesh>
         </group>
       );
     default:
       return (
         <group position={[0, 0.65, 0]}>
-          <mesh><boxGeometry args={[0.45, 0.18, 0.4]} /><meshStandardMaterial color={color} /></mesh>
+          <mesh castShadow><boxGeometry args={[0.45, 0.18, 0.4]} /><meshStandardMaterial color={color} /></mesh>
         </group>
       );
   }
@@ -84,36 +85,56 @@ function StudentShape({ name, gender = "male" }) {
   const torsoW = gender === "female" ? 0.42 : 0.45;
   const torsoH = 0.6, torsoD = 0.24;
 
+  // pupils look at the teacher (camera)
+  const { camera } = useThree();
+  const pupilsRef = useRef();
+  const tmp = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(() => {
+    if (!pupilsRef.current) return;
+    tmp.copy(camera.position);
+    tmp.y = 1.6; // eye height
+    pupilsRef.current.lookAt(tmp);
+    const r = pupilsRef.current.rotation;
+    r.x = Math.max(-0.2, Math.min(0.2, r.x));
+    r.y = Math.max(-0.35, Math.min(0.35, r.y));
+  });
+
   return (
     <group>
       {/* Head */}
-      <mesh position={[0, 0.59, 0]}><sphereGeometry args={[0.25, 32, 32]} /><meshStandardMaterial color={skin} /></mesh>
+      <mesh castShadow position={[0, 0.59, 0]}><sphereGeometry args={[0.25, 32, 32]} /><meshStandardMaterial color={skin} /></mesh>
       <Hair style={hairStyle} color={hairColor} />
       {/* Ears */}
-      <mesh position={[-0.22, 0.56, 0]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color={skin} /></mesh>
-      <mesh position={[0.22, 0.56, 0]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color={skin} /></mesh>
-      {/* Eyes/pupils */}
-      <mesh position={[-0.08, 0.63, 0.23]}><sphereGeometry args={[0.04, 16, 16]} /><meshStandardMaterial color="#ffffff" /></mesh>
-      <mesh position={[0.08, 0.63, 0.23]}><sphereGeometry args={[0.04, 16, 16]} /><meshStandardMaterial color="#ffffff" /></mesh>
-      <mesh position={[-0.08, 0.63, 0.26]}><sphereGeometry args={[0.02, 16, 16]} /><meshStandardMaterial color="#111827" /></mesh>
-      <mesh position={[0.08, 0.63, 0.26]}><sphereGeometry args={[0.02, 16, 16]} /><meshStandardMaterial color="#111827" /></mesh>
+      <mesh castShadow position={[-0.22, 0.56, 0]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color={skin} /></mesh>
+      <mesh castShadow position={[0.22, 0.56, 0]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color={skin} /></mesh>
+      {/* Eye whites */}
+      <mesh castShadow position={[-0.08, 0.63, 0.23]}><sphereGeometry args={[0.04, 16, 16]} /><meshStandardMaterial color="#ffffff" /></mesh>
+      <mesh castShadow position={[0.08, 0.63, 0.23]}><sphereGeometry args={[0.04, 16, 16]} /><meshStandardMaterial color="#ffffff" /></mesh>
+      {/* Pupils (lookAt camera) */}
+      <group ref={pupilsRef}>
+        <mesh castShadow position={[-0.08, 0.63, 0.26]}><sphereGeometry args={[0.02, 16, 16]} /><meshStandardMaterial color="#111827" /></mesh>
+        <mesh castShadow position={[0.08, 0.63, 0.26]}><sphereGeometry args={[0.02, 16, 16]} /><meshStandardMaterial color="#111827" /></mesh>
+      </group>
       {/* Brows/Mouth */}
-      <mesh position={[-0.08, 0.67, 0.24]}><boxGeometry args={[0.08, 0.01, 0.02]} /><meshStandardMaterial color={hairColor} /></mesh>
-      <mesh position={[0.08, 0.67, 0.24]}><boxGeometry args={[0.08, 0.01, 0.02]} /><meshStandardMaterial color={hairColor} /></mesh>
-      <mesh position={[0, 0.57, 0.24]}><boxGeometry args={[0.09, 0.02, 0.02]} /><meshStandardMaterial color="#d97706" /></mesh>
+      <mesh castShadow position={[-0.08, 0.67, 0.24]}><boxGeometry args={[0.08, 0.01, 0.02]} /><meshStandardMaterial color={hairColor} /></mesh>
+      <mesh castShadow position={[0.08, 0.67, 0.24]}><boxGeometry args={[0.08, 0.01, 0.02]} /><meshStandardMaterial color={hairColor} /></mesh>
+      <mesh castShadow position={[0, 0.57, 0.24]}><boxGeometry args={[0.09, 0.02, 0.02]} /><meshStandardMaterial color="#d97706" /></mesh>
       {/* Torso/Arms */}
-      <RoundedBox position={[0, 0, 0]} args={[torsoW, torsoH, torsoD]} radius={0.06} smoothness={4}><meshStandardMaterial color={cloth} /></RoundedBox>
-      <RoundedBox position={[-0.35, 0.1, 0]} args={[0.1, 0.45, 0.1]} radius={0.04} smoothness={3}><meshStandardMaterial color={cloth} /></RoundedBox>
-      <RoundedBox position={[0.35, 0.1, 0]} args={[0.1, 0.45, 0.1]} radius={0.04} smoothness={3}><meshStandardMaterial color={cloth} /></RoundedBox>
+      <RoundedBox castShadow receiveShadow position={[0, 0, 0]} args={[torsoW, torsoH, torsoD]} radius={0.06} smoothness={4}>
+        <meshStandardMaterial color={cloth} metalness={0.1} roughness={0.6} />
+      </RoundedBox>
+      <RoundedBox castShadow position={[-0.35, 0.1, 0]} args={[0.1, 0.45, 0.1]} radius={0.04} smoothness={3}><meshStandardMaterial color={cloth} /></RoundedBox>
+      <RoundedBox castShadow position={[0.35, 0.1, 0]} args={[0.1, 0.45, 0.1]} radius={0.04} smoothness={3}><meshStandardMaterial color={cloth} /></RoundedBox>
       {/* Optional subtle skirt */}
       {gender === "female" && (
-        <RoundedBox position={[0, -0.18, 0.06]} args={[0.48, 0.2, 0.28]} radius={0.05} smoothness={3}><meshStandardMaterial color={cloth} /></RoundedBox>
+        <RoundedBox castShadow position={[0, -0.18, 0.06]} args={[0.48, 0.2, 0.28]} radius={0.05} smoothness={3}><meshStandardMaterial color={cloth} /></RoundedBox>
       )}
-      {/* Notebook */}
-      <RoundedBox position={[0.45, 0.05, 0]} args={[0.15, 0.25, 0.02]} radius={0.01} smoothness={3}><meshStandardMaterial color="#facc15" /></RoundedBox>
+      {/* Notebook (smaller) */}
+      <RoundedBox castShadow position={[0.23, 0.04, 0.02]} args={[0.10, 0.18, 0.02]} radius={0.01} smoothness={3}><meshStandardMaterial color="#facc15" /></RoundedBox>
       {/* Legs */}
-      <RoundedBox position={[-0.1, -0.45, 0]} args={[0.15, 0.3, 0.15]} radius={0.04} smoothness={3}><meshStandardMaterial color="#111827" /></RoundedBox>
-      <RoundedBox position={[0.1, -0.45, 0]} args={[0.15, 0.3, 0.15]} radius={0.04} smoothness={3}><meshStandardMaterial color="#111827" /></RoundedBox>
+      <RoundedBox castShadow position={[-0.1, -0.45, 0]} args={[0.15, 0.3, 0.15]} radius={0.04} smoothness={3}><meshStandardMaterial color="#111827" /></RoundedBox>
+      <RoundedBox castShadow position={[0.1, -0.45, 0]} args={[0.15, 0.3, 0.15]} radius={0.04} smoothness={3}><meshStandardMaterial color="#111827" /></RoundedBox>
       {/* Label */}
       <Html distanceFactor={10} position={[0, 1.05, 0]}><div className="student-label">{name}</div></Html>
     </group>
@@ -124,12 +145,12 @@ function StudentShape({ name, gender = "male" }) {
 function Chair() {
   return (
     <group position={[0, -0.25, 0]}>
-      <RoundedBox position={[-0.15, 0.15, -0.15]} args={[0.1, 0.5, 0.1]} radius={0.02}><meshStandardMaterial color="#4b5563" /></RoundedBox>
-      <RoundedBox position={[0.15, 0.15, -0.15]} args={[0.1, 0.5, 0.1]} radius={0.02}><meshStandardMaterial color="#4b5563" /></RoundedBox>
-      <RoundedBox position={[-0.15, 0.15, 0.15]} args={[0.1, 0.5, 0.1]} radius={0.02}><meshStandardMaterial color="#4b5563" /></RoundedBox>
-      <RoundedBox position={[0.15, 0.15, 0.15]} args={[0.1, 0.5, 0.1]} radius={0.02}><meshStandardMaterial color="#4b5563" /></RoundedBox>
-      <RoundedBox position={[0, 0.35, 0]} args={[0.5, 0.1, 0.5]} radius={0.04}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
-      <RoundedBox position={[0, 0.65, -0.2]} args={[0.5, 0.6, 0.1]} radius={0.04}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
+      <RoundedBox castShadow position={[-0.15, 0.15, -0.15]} args={[0.1, 0.5, 0.1]} radius={0.02}><meshStandardMaterial color="#4b5563" /></RoundedBox>
+      <RoundedBox castShadow position={[0.15, 0.15, -0.15]} args={[0.1, 0.5, 0.1]} radius={0.02}><meshStandardMaterial color="#4b5563" /></RoundedBox>
+      <RoundedBox castShadow position={[-0.15, 0.15, 0.15]} args={[0.1, 0.5, 0.1]} radius={0.02}><meshStandardMaterial color="#4b5563" /></RoundedBox>
+      <RoundedBox castShadow position={[0.15, 0.15, 0.15]} args={[0.1, 0.5, 0.1]} radius={0.02}><meshStandardMaterial color="#4b5563" /></RoundedBox>
+      <RoundedBox castShadow position={[0, 0.35, 0]} args={[0.5, 0.1, 0.5]} radius={0.04}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
+      <RoundedBox castShadow position={[0, 0.65, -0.2]} args={[0.5, 0.6, 0.1]} radius={0.04}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
     </group>
   );
 }
@@ -138,12 +159,18 @@ function Chair() {
 function DeskModel() {
   return (
     <group>
-      <RoundedBox args={[1.6, 0.1, 0.9]} radius={0.05}><meshStandardMaterial color="#c99867" /></RoundedBox>
-      <RoundedBox position={[0, -0.18, 0]} args={[1.5, 0.3, 0.8]} radius={0.04}><meshStandardMaterial color="#d9b28a" /></RoundedBox>
-      <RoundedBox position={[-0.7, -0.4, -0.35]} args={[0.12, 0.5, 0.12]} radius={0.03}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
-      <RoundedBox position={[0.7, -0.4, -0.35]} args={[0.12, 0.5, 0.12]} radius={0.03}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
-      <RoundedBox position={[-0.7, -0.4, 0.35]} args={[0.12, 0.5, 0.12]} radius={0.03}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
-      <RoundedBox position={[0.7, -0.4, 0.35]} args={[0.12, 0.5, 0.12]} radius={0.03}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
+      {/* top & carcass – realistic size */}
+      <RoundedBox castShadow receiveShadow args={[0.6, 0.06, 0.45]} radius={0.03}>
+        <meshStandardMaterial color="#c99867" metalness={0.05} roughness={0.6} />
+      </RoundedBox>
+      <RoundedBox castShadow position={[0, -0.12, 0]} args={[0.55, 0.18, 0.40]} radius={0.03}>
+        <meshStandardMaterial color="#d9b28a" metalness={0.05} roughness={0.7} />
+      </RoundedBox>
+      {/* legs */}
+      <RoundedBox castShadow position={[-0.27, -0.25, -0.18]} args={[0.08, 0.36, 0.08]} radius={0.02}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
+      <RoundedBox castShadow position={[0.27, -0.25, -0.18]} args={[0.08, 0.36, 0.08]} radius={0.02}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
+      <RoundedBox castShadow position={[-0.27, -0.25, 0.18]} args={[0.08, 0.36, 0.08]} radius={0.02}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
+      <RoundedBox castShadow position={[0.27, -0.25, 0.18]} args={[0.08, 0.36, 0.08]} radius={0.02}><meshStandardMaterial color="#9aa3ae" /></RoundedBox>
     </group>
   );
 }
@@ -153,10 +180,12 @@ function RoomShell() {
   const y = ROOM.wallHeight / 2;
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.9, 0]}>
+      {/* floor */}
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.9, 0]}>
         <planeGeometry args={[ROOM.width, ROOM.depth]} />
         <meshStandardMaterial color="#efe9dc" />
       </mesh>
+      {/* walls */}
       <mesh position={[0, y, -HALF_D + 0.04]}><boxGeometry args={[ROOM.width, ROOM.wallHeight, 0.08]} /><meshStandardMaterial color="#f3e8d2" /></mesh>
       <mesh position={[-HALF_W + 0.04, y, 0]}><boxGeometry args={[0.08, ROOM.wallHeight, ROOM.depth]} /><meshStandardMaterial color="#f3e8d2" /></mesh>
       <mesh position={[HALF_W - 0.04, y, 0]}><boxGeometry args={[0.08, ROOM.wallHeight, ROOM.depth]} /><meshStandardMaterial color="#f3e8d2" /></mesh>
@@ -169,31 +198,34 @@ function BackWallDecor() {
   const z = -HALF_D + 0.06;
   return (
     <group>
-      <group position={[-HALF_W + 1.2, 1.0, z + 0.15]}>
-        <RoundedBox args={[1.2, 2.0, 0.3]} radius={0.05}><meshStandardMaterial color="#8b5e3c" /></RoundedBox>
+      {/* bookshelf */}
+      <group position={[-HALF_W + 1.0, 1.0, z + 0.15]}>
+        <RoundedBox args={[1.0, 1.8, 0.28]} radius={0.05}><meshStandardMaterial color="#8b5e3c" /></RoundedBox>
         {new Array(4).fill(0).map((_, i) => (
-          <mesh key={i} position={[0, -0.8 + i * 0.5, 0.16]}><boxGeometry args={[1.1, 0.08, 0.28]} /><meshStandardMaterial color="#754c2a" /></mesh>
+          <mesh key={i} position={[0, -0.72 + i * 0.48, 0.16]}><boxGeometry args={[0.9, 0.06, 0.26]} /><meshStandardMaterial color="#754c2a" /></mesh>
         ))}
-        {new Array(12).fill(0).map((_, i) => (
-          <mesh key={`b${i}`} position={[-0.5 + (i % 6) * 0.2, -0.68 + Math.floor(i / 6) * 0.5, 0.18]}>
-            <boxGeometry args={[0.08, 0.32, 0.1]} /><meshStandardMaterial color={pick(["#ef4444","#10b981","#3b82f6","#f59e0b","#eab308"])} />
+        {new Array(10).fill(0).map((_, i) => (
+          <mesh key={`b${i}`} position={[-0.4 + (i % 5) * 0.2, -0.60 + Math.floor(i / 5) * 0.48, 0.18]}>
+            <boxGeometry args={[0.08, 0.28, 0.1]} /><meshStandardMaterial color={pick(["#ef4444","#10b981","#3b82f6","#f59e0b","#eab308"])} />
           </mesh>
         ))}
       </group>
-      {[-2.5,0,2.5].map((x,i)=>(
+      {/* posters */}
+      {[-2.2,0,2.2].map((x,i)=>(
         <group key={i} position={[x, 2.0, z + 0.12]}>
-          <RoundedBox args={[1.0, 1.2, 0.02]} radius={0.03}><meshStandardMaterial color="#1f2937" /></RoundedBox>
-          <RoundedBox position={[0,0,0.02]} args={[0.9,1.1,0.01]} radius={0.02}><meshStandardMaterial color={pick(["#93c5fd","#a7f3d0","#fde68a"])} /></RoundedBox>
+          <RoundedBox args={[0.9, 1.0, 0.02]} radius={0.03}><meshStandardMaterial color="#1f2937" /></RoundedBox>
+          <RoundedBox position={[0,0,0.02]} args={[0.8,0.9,0.01]} radius={0.02}><meshStandardMaterial color={pick(["#93c5fd","#a7f3d0","#fde68a"])} /></RoundedBox>
         </group>
       ))}
-      <group position={[HALF_W - 2.0, 2.4, z + 0.12]}>
-        <mesh><circleGeometry args={[0.45, 32]} /><meshStandardMaterial color="#ffffff" /></mesh>
-        <mesh rotation={[0,0,Math.PI/2]}><boxGeometry args={[0.02, 0.35, 0.02]} /><meshStandardMaterial color="#111827" /></mesh>
-        <mesh><boxGeometry args={[0.02, 0.25, 0.02]} /><meshStandardMaterial color="#111827" /></mesh>
+      {/* clock & notice board */}
+      <group position={[HALF_W - 1.6, 2.4, z + 0.12]}>
+        <mesh><circleGeometry args={[0.35, 32]} /><meshStandardMaterial color="#ffffff" /></mesh>
+        <mesh rotation={[0,0,Math.PI/2]}><boxGeometry args={[0.02, 0.28, 0.02]} /><meshStandardMaterial color="#111827" /></mesh>
+        <mesh><boxGeometry args={[0.02, 0.2, 0.02]} /><meshStandardMaterial color="#111827" /></mesh>
       </group>
-      <group position={[HALF_W - 3.0, 1.8, z + 0.12]}>
-        <RoundedBox args={[2.0, 1.2, 0.05]} radius={0.03}><meshStandardMaterial color="#e5e7eb" /></RoundedBox>
-        <RoundedBox position={[0,0,0.03]} args={[1.8,1.0,0.02]} radius={0.02}><meshStandardMaterial color="#93c5fd" /></RoundedBox>
+      <group position={[HALF_W - 2.6, 1.8, z + 0.12]}>
+        <RoundedBox args={[1.8, 1.0, 0.05]} radius={0.03}><meshStandardMaterial color="#e5e7eb" /></RoundedBox>
+        <RoundedBox position={[0,0,0.03]} args={[1.6,0.8,0.02]} radius={0.02}><meshStandardMaterial color="#93c5fd" /></RoundedBox>
       </group>
     </group>
   );
@@ -214,7 +246,14 @@ function Movable({ id, selectedId, setSelectedId, initialPosition, children, onC
   const ref = useRef();
   const selected = selectedId === id;
   const [pos, setPos] = useState(() => clampToRoom(initialPosition));
-  useEffect(() => { if (ref.current) ref.current.position.set(...pos); }, [pos]);
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.position.set(...pos);
+      if (id.startsWith("desk-") || id.startsWith("chair-")) {
+        ref.current.rotation.y = (Math.random() - 0.5) * 0.08; // ±~4.5°
+      }
+    }
+  }, [pos, id]);
 
   const MOVE_STEP = 0.25;
   const ROT_STEP = Math.PI / 12; // 15°
@@ -293,7 +332,7 @@ function Movable({ id, selectedId, setSelectedId, initialPosition, children, onC
 }
 
 /* ---------- Adaptive camera that fits the CONTENT ---------- */
-function AdaptiveCameraFit({ targets, padding = 2, fitKey = 0 }) {
+function AdaptiveCameraFit({ targets, padding = 1.2, fitKey = 0 }) {
   const { camera, size } = useThree();
   useEffect(() => {
     if (!targets || targets.length === 0) return;
@@ -303,7 +342,7 @@ function AdaptiveCameraFit({ targets, padding = 2, fitKey = 0 }) {
       minX = Math.min(minX, t.x); maxX = Math.max(maxX, t.x);
       minZ = Math.min(minZ, t.z); maxZ = Math.max(maxZ, t.z);
     }
-    const deskW = 1.6, deskD = 0.9;
+    const deskW = 0.6, deskD = 0.45;
     const width = (maxX - minX) + deskW + padding * 2;
     const depth = (maxZ - minZ) + deskD + padding * 2;
     const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
@@ -325,21 +364,22 @@ function AdaptiveCameraFit({ targets, padding = 2, fitKey = 0 }) {
 function ClassroomScene({ numStudents, distribution, onAnyCommit, fitKey }) {
   const cols = 8;
   const rows = Math.ceil(numStudents / cols);
-  const dx = 2.5, dz = 2.5;
+  const dx = 0.95, dz = 1.10;
   const startX = -((cols - 1) * dx) / 2;
-  const startZ = -((rows - 1) * dz) / 2 + 2;
+  const startZ = -((rows - 1) * dz) / 2 + 0.6;
 
   const studentTypes = useMemo(() => buildStudentList(distribution), [distribution]);
 
   const seats = useMemo(() => {
+    const jitter = (v, j) => v + (Math.random() - 0.5) * j;
     const out = [];
     let idx = 0;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (idx >= numStudents) break;
         out.push({
-          x: startX + c * dx,
-          z: startZ + r * dz,
+          x: jitter(startX + c * dx, 0.05),
+          z: jitter(startZ + r * dz, 0.05),
           name: `S${idx + 1}`,
           gender: (r + c) % 2 === 0 ? "male" : "female",
           type: studentTypes[idx],
@@ -357,13 +397,18 @@ function ClassroomScene({ numStudents, distribution, onAnyCommit, fitKey }) {
 
   return (
     <>
-      <AdaptiveCameraFit targets={deskPositionsRef.current} padding={2} fitKey={fitKey} />
+      <AdaptiveCameraFit targets={deskPositionsRef.current} padding={1.2} fitKey={fitKey} />
 
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[6, 10, 8]} intensity={0.7} />
+      {/* lighting */}
+      <hemisphereLight intensity={0.5} groundColor="#bfbfbf" />
+      <directionalLight castShadow position={[-3, 6, 4]} intensity={1.1}
+        shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
+      <fog attach="fog" args={["#d6d3d1", 6, 16]} />
 
       <RoomShell />
       <BackWallDecor />
+
+      <ContactShadows position={[0, -0.9, 0]} opacity={0.3} scale={12} blur={2} far={2} />
 
       {/* transparent floor to clear selection */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.9, 0]} onPointerDown={() => setSelectedId(null)} visible={false}>
@@ -373,7 +418,6 @@ function ClassroomScene({ numStudents, distribution, onAnyCommit, fitKey }) {
 
       {seats.map((s, i) => {
         const base = [s.x, 0, s.z];
-        // keep the tracked desk positions in sync from the desk object only
         const onCommit = (id, pos) => {
           if (id.startsWith("desk-")) deskPositionsRef.current[i] = { x: pos.x, z: pos.z };
           updateDeskPos();
@@ -381,8 +425,8 @@ function ClassroomScene({ numStudents, distribution, onAnyCommit, fitKey }) {
         return (
           <group key={i}>
             <Movable id={`desk-${i}`}    selectedId={selectedId} setSelectedId={setSelectedId} initialPosition={[base[0], -0.2,  base[2]]} onCommit={onCommit}><DeskModel /></Movable>
-            <Movable id={`chair-${i}`}   selectedId={selectedId} setSelectedId={setSelectedId} initialPosition={[base[0], -0.65, base[2]-0.6]} onCommit={onCommit}><Chair /></Movable>
-            <Movable id={`student-${i}`} selectedId={selectedId} setSelectedId={setSelectedId} initialPosition={[base[0], 0,     base[2]+0.1]} onCommit={onCommit}><StudentShape name={s.name} gender={s.gender} /></Movable>
+            <Movable id={`chair-${i}`}   selectedId={selectedId} setSelectedId={setSelectedId} initialPosition={[base[0], -0.42, base[2]-0.33]} onCommit={onCommit}><Chair /></Movable>
+            <Movable id={`student-${i}`} selectedId={selectedId} setSelectedId={setSelectedId} initialPosition={[base[0], 0,     base[2]+0.06]} onCommit={onCommit}><StudentShape name={s.name} gender={s.gender} /></Movable>
           </group>
         );
       })}
@@ -396,7 +440,7 @@ export default function VirtualClassroomFull() {
 
   return (
     <div className="vc-fullscreen">
-      <Canvas camera={{ position: [0, 9, 16], fov: 50 }}>
+      <Canvas shadows camera={{ position: [0, 6, 9], fov: 55 }}>
         <ClassroomScene
           numStudents={settings.numStudents}
           distribution={settings.distribution}
