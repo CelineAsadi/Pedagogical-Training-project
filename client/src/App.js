@@ -8,6 +8,8 @@ import Forgetpassword from './components/Forgetpassword';
 import MainPage from './components/MainPage';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import Profile from './components/Profile';
+import LessonSettings from './components/LessonSettings';
+
 import { authStore } from './store/authStore';
 import { useEffect } from 'react';
 import { Toaster } from "react-hot-toast";
@@ -57,8 +59,13 @@ function App() {
             path="/Profile"
             element={authUser ? <Profile /> : <Navigate to="/" replace />}
           />
-          
-        <Route path="/classroom" element={<VirtualClassroom />} />
+          <Route
+            path="/LessonSettings"
+            element={authUser ? <LessonSettings /> : <Navigate to="/" replace />}
+          />
+        <Route path="/VirtualClassroom"    
+            element={authUser ? <VirtualClassroom /> : <Navigate to="/" replace />}
+          />
 
           {/* Fallback Route */}
           <Route path="*" element={<Navigate to="/" replace />} />

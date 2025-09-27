@@ -61,14 +61,14 @@ const MainPage = () => {
         <div className="buttons">
           <button
             className="btn"
-            onClick={() => navigate("/classroom")}
+            onClick={() => navigate("/VirtualClassroom")}
           >
             ENTER THE STANDARD VIRTUAL CLASSROOM
           </button>
 
           <button
             className="btn"
-            onClick={() => navigate("/setup")}
+            onClick={() => navigate("/LessonSettings")}
           >
             SET UP A CLASSROOM
           </button>
