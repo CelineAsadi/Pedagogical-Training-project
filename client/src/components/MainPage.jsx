@@ -75,6 +75,33 @@ const MainPage = () => {
         </div>
       </section>
 
+      {/* 🧩 Virtual Classroom Description */}
+      <section className="classroom-info">
+        <h2>🎓 Standard Virtual Classroom Overview</h2>
+        <p>
+          The <strong>standard simulation</strong> includes <strong>15 students</strong> with diverse personalities and classroom behaviors.
+        </p>
+
+        <div className="student-summary">
+          <ul>
+            <li>👀 3 Attentive students</li>
+            <li>💬 2 Talkers</li>
+            <li>😠 2 Defiant</li>
+            <li>😢 2 Sensitive</li>
+            <li>😶 2 Withdrawn</li>
+            <li>⚔️ 1 Conflicts</li>
+            <li>😏 1 Sarcastic</li>
+            <li>⚡ 1 Hyperactive</li>
+            <li>🙂 1 Neutral</li>
+          </ul>
+        </div>
+
+        <p className="duration">
+          ⏱️ <strong>Lesson Duration:</strong> 5 minutes
+        </p>
+      </section>
+
+      {/* 🔹 Footer */}
       <footer className="footer">
         <div className="footer-container">
           {/* About */}

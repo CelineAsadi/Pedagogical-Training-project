@@ -32,25 +32,6 @@ const LessonSettings = () => {
     updated[index].count = newValue;
     setStudentTypes(updated);
   };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (totalStudents > classSize) {
-      toast.error("Total students exceed class size!");
-      return;
-    }
-    if (totalStudents < classSize) {
-      toast.error("Total students are less than class size!");
-      return;
-    }
-
-    toast.success("Lesson settings saved ✅");
-    console.log({ classSize, duration, studentTypes });
-  };
-
-  const handleLogout = () => logout();
-
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -62,6 +43,36 @@ const LessonSettings = () => {
     };
     fetchUser();
   }, []);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (totalStudents > classSize) {
+    toast.error("Total students exceed class size!");
+    return;
+  }
+  if (totalStudents < classSize) {
+    toast.error("Total students are less than class size!");
+    return;
+  }
+
+  try {
+    const res = await axiosInstance.post(
+      "/lesson/save",
+      { classSize, duration, studentTypes },
+      { withCredentials: true } // חשוב מאוד
+    );
+
+    toast.success(res.data.message || "Lesson settings saved ✅");
+  } catch (err) {
+    console.error("Error saving settings:", err.response?.data || err.message);
+    toast.error(err.response?.data?.message || "Failed to save settings");
+  }
+};
+
+
+  const handleLogout = () => logout();
+
+
 
   return (
     <div className="lesson-page">

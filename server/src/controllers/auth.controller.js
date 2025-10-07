@@ -218,6 +218,51 @@ const verifyEmailUpdate = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+const LessonSettings = require("../models/LessonSettings");
+
+exports.saveLessonSettings = async (req, res) => {
+  try {
+    const userId = req.user._id; // מתקבל מה-token (middleware)
+    const { classSize, duration, studentTypes } = req.body;
+
+    // חישוב סכום כל התלמידים
+    const totalStudents = studentTypes.reduce((sum, t) => sum + t.count, 0);
+
+    if (totalStudents !== classSize) {
+      return res
+        .status(400)
+        .json({ message: "Total students must equal class size" });
+    }
+
+    const settings = await LessonSettings.findOneAndUpdate(
+      { userId },
+      { classSize, duration, studentTypes },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({
+      message: "Lesson settings saved successfully",
+      settings,
+    });
+  } catch (err) {
+    console.error("Error saving lesson settings:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.getLessonSettings = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const settings = await LessonSettings.findOne({ userId });
+    if (!settings) {
+      return res.json({ default: true });
+    }
+    res.json(settings);
+  } catch (err) {
+    console.error("Error getting lesson settings:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 module.exports = {
     Signup,

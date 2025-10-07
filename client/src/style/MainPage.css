@@ -201,3 +201,51 @@
   padding-top: 15px;
   color: #888;
 }
+/* Classroom Info Section */
+.classroom-info {
+  background: #f9fbff;
+  margin: 60px auto;
+  padding: 40px 20px;
+  border-radius: 16px;
+  max-width: 900px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.classroom-info h2 {
+  color: #0056b3;
+  margin-bottom: 20px;
+  font-size: 26px;
+}
+
+.classroom-info p {
+  color: #333;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.student-summary {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.student-summary ul {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+  columns: 2;
+  column-gap: 50px;
+}
+
+.student-summary li {
+  font-size: 15px;
+  color: #444;
+  padding: 4px 0;
+}
+
+.duration {
+  font-size: 16px;
+  color: #0056b3;
+  font-weight: bold;
+}

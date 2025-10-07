@@ -3,6 +3,8 @@
 
 const express = require("express");
 const authRoutes = require("./routes/auth.route");
+const lessonRoutes = require("./routes/lesson.routes");
+
 const supportRoutes = require("./routes/support.route");
 const cors = require("cors");
 const ConnectDB = require("./lib/db");
@@ -18,6 +20,8 @@ app.use(cookieParser());
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 
 app.use("/api/auth", authRoutes);
+app.use("/api", lessonRoutes);
+
 app.use("/api/supports", supportRoutes);
 const behaviorRoutes = require("./routes/behavior.route");
 app.use("/api/behavior", behaviorRoutes);
