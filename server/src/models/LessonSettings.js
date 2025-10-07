@@ -1,11 +1,15 @@
 const mongoose = require("mongoose");
-
 const lessonSettingsSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
-    unique: true, // משתמש אחד – סט אחד של הגדרות
+  },
+  className: {
+    type: String,
+    required: true,
+    trim: true,
+    lowercase: true,
   },
   classSize: {
     type: Number,
@@ -16,7 +20,7 @@ const lessonSettingsSchema = new mongoose.Schema({
   duration: {
     type: Number,
     required: true,
-    min: 5, 
+    min: 5,
     max: 10,
   },
   studentTypes: [
@@ -26,6 +30,9 @@ const lessonSettingsSchema = new mongoose.Schema({
     },
   ],
 }, { timestamps: true });
+
+// ⚙️ אינדקס חדש: שם כיתה ייחודי למשתמש עצמו
+lessonSettingsSchema.index({ userId: 1, className: 1 }, { unique: true });
 
 const LessonSettings = mongoose.model("LessonSettings", lessonSettingsSchema);
 module.exports = LessonSettings;

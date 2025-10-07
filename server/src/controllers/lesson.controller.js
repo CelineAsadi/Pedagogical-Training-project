@@ -1,52 +1,67 @@
 const LessonSettings = require("../models/LessonSettings");
 
 /**
- * שמירת הגדרות כיתה למשתמש
+ * ויצירה שמירת הגדרות כיתה למשתמש
  */
 exports.saveLessonSettings = async (req, res) => {
-  try {
-    const userId = req.user._id; // מתקבל מה-middleware של אימות JWT
-    const { classSize, duration, studentTypes } = req.body;
-    console.log("=== Saving Lesson Settings ===");
-console.log("req.user:", req.user);
-console.log("req.body:", req.body);
+ try {
+    const userId = req.user._id;
+    const { className, classSize, duration, studentTypes } = req.body;
 
+    console.log("Creating class for user:", userId, className);
 
-    // בדיקה שחייבים לשלוח את כל הנתונים
-    if (!classSize || !duration || !studentTypes) {
+    // בדיקות תקינות בסיסיות
+    if (!className || !classSize || !duration || !studentTypes) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // חישוב סכום כל התלמידים
     const totalStudents = studentTypes.reduce((sum, t) => sum + t.count, 0);
     if (totalStudents !== classSize) {
       return res.status(400).json({ message: "Total students must equal class size" });
     }
 
-    // עדכון או יצירה של ההגדרות למשתמש
-    const settings = await LessonSettings.findOneAndUpdate(
-      { userId },
-      { classSize, duration, studentTypes },
-      { new: true, upsert: true } // אם אין - צור חדש
-    );
+    // יצירת כיתה חדשה
+    const newLesson = new LessonSettings({
+      userId,
+      className: className.trim(),
+      classSize,
+      duration,
+      studentTypes,
+    });
 
-    res.status(200).json({
-      message: "Lesson settings saved successfully ✅",
-      settings,
+    await newLesson.save();
+
+    res.status(201).json({
+      message: "New class created successfully ✅",
+      lesson: newLesson,
     });
   } catch (err) {
-    console.error("Error saving lesson settings:", err);
+    console.error("❌ Error creating class:", err);
+
+    // טיפול במקרה של שם כיתה כפול
+    if (err.code === 11000) {
+      return res.status(400).json({
+        message: "A class with this name already exists. Please choose another name.",
+      });
+    }
+
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 /**
- * שליפת ההגדרות הקיימות של המשתמש
+ * שליפת כיתה ספציפית  למשתמש
  */
 exports.getLessonSettings = async (req, res) => {
   try {
     const userId = req.user._id;
-    const settings = await LessonSettings.findOne({ userId });
+    const { className } = req.query; // נוסיף תמיכה בפרמטר מה-URL
+
+    if (!className) {
+      return res.status(400).json({ message: "Class name is required" });
+    }
+
+    const settings = await LessonSettings.findOne({ userId, className: className.toLowerCase().trim() });
 
     if (!settings) {
       return res.json({ default: true, message: "No settings found — using default classroom" });
@@ -55,6 +70,24 @@ exports.getLessonSettings = async (req, res) => {
     res.status(200).json(settings);
   } catch (err) {
     console.error("Error getting lesson settings:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+/**
+ * ✅ שליפת כל הכיתות של המשתמש
+ */
+exports.getUserClasses = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const classes = await LessonSettings.find({ userId }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      message: `Found ${classes.length} classes for user.`,
+      classes,
+    });
+  } catch (err) {
+    console.error("❌ Error getting user classes:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };

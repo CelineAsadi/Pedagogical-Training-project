@@ -3,13 +3,14 @@ import { authStore } from "../store/authStore";
 import toast from "react-hot-toast";
 import "../style/LessonSettings.css";
 import { axiosInstance } from "../lib/axios";
-import { Link } from "react-router-dom";
-
+import { Link, useNavigate } from "react-router-dom";  
 const LessonSettings = () => {
   const [user, setUser] = useState(null);
   const { logout } = authStore();
   const [classSize, setClassSize] = useState(5);
   const [duration, setDuration] = useState(5);
+  const navigate = useNavigate();                    
+  const [className, setClassName] = useState("");
 
   const [studentTypes, setStudentTypes] = useState([
     { name: "Attentive", count: 0 },
@@ -45,6 +46,7 @@ const LessonSettings = () => {
   }, []);
 const handleSubmit = async (e) => {
   e.preventDefault();
+if (!className.trim()) return toast.error("Please enter a class name.");
 
   if (totalStudents > classSize) {
     toast.error("Total students exceed class size!");
@@ -58,11 +60,15 @@ const handleSubmit = async (e) => {
   try {
     const res = await axiosInstance.post(
       "/lesson/save",
-      { classSize, duration, studentTypes },
-      { withCredentials: true } // חשוב מאוד
+      { classSize, duration, studentTypes,className },
+      { withCredentials: true } 
     );
 
     toast.success(res.data.message || "Lesson settings saved ✅");
+    setTimeout(() => {
+     navigate(`/VirtualClassroom?type=custom&class=${encodeURIComponent(className)}`);
+
+    }, 800); // עיכוב קטן כדי שיראו את ההודעה
   } catch (err) {
     console.error("Error saving settings:", err.response?.data || err.message);
     toast.error(err.response?.data?.message || "Failed to save settings");
@@ -103,12 +109,21 @@ const handleSubmit = async (e) => {
           <div className="settings-grid">
             <div className="settings-card">
               <h3>General</h3>
+               <div className="form-group">
+                <label>Class Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. English Lesson"
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                />
+              </div>
               <div className="form-group">
-                <label>Class Size (5–10)</label>
+                <label>Class Size (5–15)</label>
                 <input
                   type="number"
                   min="5"
-                  max="10"
+                  max="15"
                   value={classSize}
                   onChange={(e) => setClassSize(Number(e.target.value))}
                 />

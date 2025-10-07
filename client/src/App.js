@@ -1,5 +1,5 @@
 // import React from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes,useSearchParams } from 'react-router-dom';
 import Home from './components/Home';
 import Login from './components/Login';
 import Signup from './components/Signup';
@@ -9,13 +9,21 @@ import MainPage from './components/MainPage';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import Profile from './components/Profile';
 import LessonSettings from './components/LessonSettings';
-
+import { useClassroomConfig } from "./hooks/useClassroomConfig";
 import { authStore } from './store/authStore';
 import { useEffect } from 'react';
 import { Toaster } from "react-hot-toast";
 import VirtualClassroom from './components/VirtualClassroom';
 
+function VirtualClassroomWrapper() {
+  const [params] = useSearchParams();
+  const type = params.get("type") || "basic"; // נקבל ?type=basic או ?type=custom
+  const config = useClassroomConfig(type);
 
+  if (!config) return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading classroom...</p>;
+
+  return <VirtualClassroom config={config} />;
+}
 function App() {
   const { authUser, checkAuth } = authStore();
 
@@ -64,7 +72,7 @@ function App() {
             element={authUser ? <LessonSettings /> : <Navigate to="/" replace />}
           />
         <Route path="/VirtualClassroom"    
-            element={authUser ? <VirtualClassroom /> : <Navigate to="/" replace />}
+            element={authUser ? <VirtualClassroomWrapper /> : <Navigate to="/" replace />}
           />
 
           {/* Fallback Route */}
