@@ -45,8 +45,14 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
       const newPos = snapVec3(clampToRoom([p.x, AVATAR_Y, p.z]));
       moveStudent(student.id, newPos, rotation ?? FACE_FRONT);
       onMoved?.(student.id, newPos);
+  
+      // ✅ שליחת מיקום חדש כשהתלמיד זז עם העכבר
+      document.dispatchEvent(new CustomEvent('studentMovedFromHUD', {
+        detail: { id: student.id, position: newPos }
+      }));
     },
   });
+  
 
   useFrame((state) => {
     if (!mouthRef.current) return;

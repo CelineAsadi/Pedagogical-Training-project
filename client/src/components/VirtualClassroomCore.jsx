@@ -120,24 +120,26 @@ function Scene({ speakingMap, onStudentMoved }) {
             : <Chair key={it.id} item={it} onSelect={select} />
         )}
 
-      {students.map(s => {
-        const override = studentTransforms[s.id];
-        let pos, rot;
-        if (override) {
-          pos = override.position;
-          rot = override.rotation ?? FACE_FRONT;
+      {students.map((s) => {
+        // בסיס לפי כיסא/שורת המתנה
+        const chair = s.seatId ? chairsById[s.seatId] : null;
+        let basePos, baseRot;
+        if (chair) {
+          basePos = [chair.position[0], AVATAR_Y, chair.position[2] - 0.05];
+          baseRot = chair.rotation;
         } else {
-          const chair = s.seatId ? chairsById[s.seatId] : null;
-          if (chair) {
-            pos = [chair.position[0], AVATAR_Y, chair.position[2] - 0.05];
-            rot = chair.rotation;
-          } else {
-            pos = clampToRoom([waitingX, AVATAR_Y, waitingRowZ]);
-            waitingX += 0.8;
-            rot = FACE_FRONT;
-          }
+          basePos = clampToRoom([waitingX, AVATAR_Y, waitingRowZ]);
+          waitingX += 0.8;
+          baseRot = FACE_FRONT;
         }
+
+        // override חלקי בלבד (אם יש) — לא לרוקן position כשמגיע רק rotation
+        const override = studentTransforms[s.id] || {};
+        const pos = override.position ?? basePos;
+        const rot = override.rotation ?? baseRot;
+
         const speakingText = speakingMap[s.id] || null;
+
         return (
           <StudentAvatar
             key={s.id}
@@ -170,21 +172,7 @@ function HUDControls() {
   const step = SNAP.translate;
   const isItem = items.some(it => it.id === selectionId);
 
-  const nudge = (dx, dz) => {
-    if (isItem) {
-      const it = items.find(i => i.id === selectionId);
-      if (!it) return;
-      const [x, y, z] = it.position;
-      const next = snapVec3(clampToRoom([x + dx, y, z + dz]));
-      moveItem(it.id, [next[0], 0, next[2]], it.rotation);
-    } else {
-      const st = useClassroomStore.getState().studentTransforms[selectionId];
-      const cur = st?.position ?? [0, AVATAR_Y, 0];
-      const next = snapVec3(clampToRoom([cur[0] + dx, AVATAR_Y, cur[2] + dz]));
-      moveStudent(selectionId, next, st?.rotation ?? FACE_FRONT);
-      document.dispatchEvent(new CustomEvent('studentMovedFromHUD', { detail: { id: selectionId, position: next } }));
-    }
-  };
+ 
 
   const Btn = ({ children, onClick }) => (
     <button
@@ -202,17 +190,13 @@ function HUDControls() {
       display: 'flex', gap: 10, background: 'rgba(255,255,255,0.95)',
       border: '1px solid #ddd', borderRadius: 14, padding: 10, zIndex: 20
     }}>
-      <Btn onClick={() => nudge(-step, 0)}>⬅︎ שמאלה</Btn>
-      <Btn onClick={() => nudge(step, 0)}>ימינה ➡︎</Btn>
-      <Btn onClick={() => nudge(0, -step)}>⬆︎ קדימה</Btn>
-      <Btn onClick={() => nudge(0, step)}>⬇︎ אחורה</Btn>
       <Btn onClick={() => rotateSelected(-SNAP.rotateRad)}>↶ סובב</Btn>
       <Btn onClick={() => rotateSelected(SNAP.rotateRad)}>↷ סובב</Btn>
       <Btn onClick={faceFront}>יישור קדימה ⬆︎</Btn>
     </div>
   );
+  
 }
-
 /* ===== Main Core ===== */
 export default function VirtualClassroomCore({ config }) {
   const setLastDisruption = useClassroomStore(s => s.setLastDisruption);
