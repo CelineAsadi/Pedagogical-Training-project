@@ -218,7 +218,7 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
         )}
       </group>
 
-      {/* Label */}
+{      /* Label */}
       <Html distanceFactor={10} position={[0, -0.66, 0]} style={{ pointerEvents:'none' }}>
         <div style={{
           background:'rgba(255,255,255,0.95)', padding:'2px 6px',
