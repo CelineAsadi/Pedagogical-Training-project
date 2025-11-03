@@ -45,15 +45,12 @@ io.on("connection", (socket) => {
   const { sessionId = socket.id } = socket.handshake.query || {};
   socket.join(sessionId);
 
-  // מפעילים את הטיימר הפנימי של הסשן, אבל השיעור לא פעיל עד START
   startBehaviorLoop({ io, room: sessionId });
 
-  // איניט כיתה
   socket.on("class:init", ({ students }) => {
     if (Array.isArray(students)) upsertStudents(sessionId, students);
   });
 
-  // שליטה בשיעור
   socket.on("lesson:start", ({ durationSec }) => {
     activateLesson(sessionId, (durationSec || 300) * 1000);
   });
@@ -61,21 +58,17 @@ io.on("connection", (socket) => {
     deactivateLesson(sessionId);
   });
 
-  // מיקרופון מורה (לא חובה, אך מונע הפרעות כשהמורה מדבר אם תשתמשי בעתיד)
   socket.on("mic:state", (isOn) => setMic(sessionId, !!isOn));
 
-  // תזוזות תלמידים
   socket.on("student:moved", ({ id, position }) => {
     if (id && position) updateStudentPosition(sessionId, { id, position });
   });
 
-  // תגובת מורה (טקסט שמגיע מהתמלול בצד הלקוח)
   socket.on("teacher:response", ({ disruptionId, text, ts }) => {
     if (!disruptionId || !text) return;
     pushTeacherResponse(sessionId, { disruptionId, text, ts });
   });
 
-  // "הקלטה" — לוגים בלבד
   socket.on("rec:start", ({ durationSec }) => {
     console.log(`SIM RECORD START | session=${sessionId} | duration=${durationSec || 300}s`);
   });
