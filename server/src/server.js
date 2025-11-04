@@ -51,7 +51,10 @@ app.get("/", (req, res) => {
 // ✅ Socket.io – גם הוא חייב לדעת מי מותר לו
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin:[
+    "http://localhost:3000",
+    "https://pedagogical-training-project-client.vercel.app/"
+  ],
     credentials: true
   }
 });
@@ -96,16 +99,16 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => stopBehaviorLoop(sessionId));
 });
 
-// ✅ Production Mode – אם הקליינט בנוי
-if (process.env.NODE_ENV === "production") {
-  const clientPath = path.join(__dirname, "../client/build");
-  app.use(express.static(clientPath));
+// // ✅ Production Mode – אם הקליינט בנוי
+// if (process.env.NODE_ENV === "production") {
+//   const clientPath = path.join(__dirname, "../client/build");
+//   app.use(express.static(clientPath));
 
-  // ✅ במקום app.get("*") – משתמשים ב־Regex כדי למנוע את שגיאת PathError
-  app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(clientPath, "index.html"));
-  });
-}
+//   // ✅ במקום app.get("*") – משתמשים ב־Regex כדי למנוע את שגיאת PathError
+//   app.get(/^\/(?!api).*/, (req, res) => {
+//     res.sendFile(path.join(clientPath, "index.html"));
+//   });
+// }
 
 // ✅ Start Server
 const PORT = process.env.PORT || 4000;
