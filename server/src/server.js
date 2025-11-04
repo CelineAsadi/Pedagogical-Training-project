@@ -53,7 +53,7 @@ const io = new Server(server, {
   cors: {
     origin:[
     "http://localhost:3000",
-    "https://pedagogical-training-project-client.vercel.app"
+    //"https://pedagogical-training-project-client.vercel.app"
   ],
     credentials: true
   }
@@ -101,7 +101,7 @@ io.on("connection", (socket) => {
 
 // ✅ Production Mode – אם הקליינט בנוי
 if (process.env.NODE_ENV === "production") {
-  const clientPath = path.join(__dirname, "../client/build");
+  const clientPath = path.join(__dirname, "../../client/build");
   app.use(express.static(clientPath));
 
   // ✅ במקום app.get("*") – משתמשים ב־Regex כדי למנוע את שגיאת PathError
