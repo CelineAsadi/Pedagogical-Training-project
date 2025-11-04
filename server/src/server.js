@@ -17,7 +17,23 @@ dotenv.config();
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+const allowedOrigins = [
+  "http://localhost:3000", // פיתוח מקומי
+  "pedagogical-training-project-client.vercel.app" // הקישור של ה-Client אחרי Deploy
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 app.use("/api/auth", authRoutes);
 app.use("/api", lessonRoutes);
