@@ -19,7 +19,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:3000", // פיתוח מקומי
-  "pedagogical-training-project-client.vercel.app" // הקישור של ה-Client אחרי Deploy
+  "https://pedagogical-training-project-client-qttkxx7yz.vercel.app" // הקישור של ה-Client אחרי Deploy
 ];
 
 app.use(
