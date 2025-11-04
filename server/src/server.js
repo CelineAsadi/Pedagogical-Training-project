@@ -17,15 +17,21 @@ dotenv.config();
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
+const corsOptions = {
+    origin: [
+        "http://localhost:3000",
+        "https://website-project-client.vercel.app/"
+       
+        
+    ],
+};
+
+// Middleware
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://pedagogical-training-project-client.vercel.app"
-  ],
-  credentials: true
-}));
-
-
+    origin: '*',  // Allows all origins
+  }));
+  
+app.use(cors(corsOptions));
 app.use("/api/auth", authRoutes);
 app.use("/api", lessonRoutes);
 
