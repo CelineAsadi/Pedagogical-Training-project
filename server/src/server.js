@@ -20,7 +20,7 @@ app.use(cookieParser());
 const corsOptions = {
     origin: [
         "http://localhost:3000",
-        "https://website-project-client.vercel.app/"
+        "https://pedagogical-training-project-client.vercel.app/"
        
         
     ],
