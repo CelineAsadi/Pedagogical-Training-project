@@ -1,73 +1,64 @@
 // server/src/server.js
 
 const express = require("express");
-const path = require("path");
-const http = require("http");
-const cookieParser = require("cookie-parser");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const { Server } = require("socket.io");
-
 const authRoutes = require("./routes/auth.route");
 const lessonRoutes = require("./routes/lesson.routes");
 const supportRoutes = require("./routes/support.route");
 const behaviorRoutes = require("./routes/behavior.route");
 
+const cors = require("cors");
 const ConnectDB = require("./lib/db");
+const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 
 dotenv.config();
+
 const app = express();
 const server = http.createServer(app);
 
-/* ✅ Middleware */
+// ✅ חיבור ל־MongoDB
+if (typeof ConnectDB === "function") {
+  ConnectDB();
+}
+
+// ✅ כדי להבטיח שהשרת יודע לעבוד עם JSON + COOKIE
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-/* ✅ Allow frontend URLs */
+// ✅ לאפשר קישור מהקליינט בלוקאל וגם מה־Vercel
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://pedagogical-training-project-client.vercel.app", // Vercel Client
+  "https://pedagogical-training-project-client.vercel.app"
 ];
 
 app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
   })
 );
 
-/* ✅ Routes */
+// ✅ Routes API
 app.use("/api/auth", authRoutes);
 app.use("/api", lessonRoutes);
 app.use("/api/supports", supportRoutes);
 app.use("/api/behavior", behaviorRoutes);
 
-/* ✅ Test route */
+// ✅ דף בדיקה
 app.get("/", (req, res) => {
-  res.send("✅ Server is running successfully!");
+  res.send("✅ Server is active & running");
 });
 
-/* ✅ Serve Frontend (Production only) */
-if (process.env.NODE_ENV === "production") {
-  const __dirnamePath = path.resolve();
-  const clientPath = path.join(__dirnamePath, "../client/build");
-
-  // Serve built React app
-  app.use(express.static(clientPath));
-
-  // SPA fallback route — all non API goes to index.html
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(clientPath, "index.html"));
-  });
-}
-
-/* ✅ Socket.io setup */
+// ✅ Socket.io – גם הוא חייב לדעת מי מותר לו
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    credentials: true,
-  },
+    credentials: true
+  }
 });
 
 const {
@@ -78,7 +69,7 @@ const {
   deactivateLesson,
   upsertStudents,
   pushTeacherResponse,
-  updateStudentPosition,
+  updateStudentPosition
 } = require("./services/behaviorLoop");
 
 io.on("connection", (socket) => {
@@ -97,6 +88,7 @@ io.on("connection", (socket) => {
 
   socket.on("lesson:stop", () => deactivateLesson(sessionId));
   socket.on("mic:state", (isOn) => setMic(sessionId, !!isOn));
+
   socket.on("student:moved", ({ id, position }) => {
     if (id && position) updateStudentPosition(sessionId, { id, position });
   });
@@ -109,9 +101,19 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => stopBehaviorLoop(sessionId));
 });
 
-/* ✅ Run server */
+// ✅ Production Mode – אם הקליינט בנוי
+if (process.env.NODE_ENV === "production") {
+  const clientPath = path.join(__dirname, "../client/build");
+  app.use(express.static(clientPath));
+
+  // ✅ במקום app.get("*") – משתמשים ב־Regex כדי למנוע את שגיאת PathError
+  app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(clientPath, "index.html"));
+  });
+}
+
+// ✅ Start Server
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server listening on ${PORT}`);
-  ConnectDB();
+  console.log(`🚀 Server running on port ${PORT} (NODE_ENV=${process.env.NODE_ENV})`);
 });
