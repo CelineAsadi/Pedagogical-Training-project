@@ -11,7 +11,6 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.11.0",
     "nanoid": "^5.1.6",
-    "pedagogical-training-project": "file:..",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",
@@ -24,7 +23,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
