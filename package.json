@@ -1,12 +1,13 @@
 {
   "name": "pedagogical-training-project",
   "version": "1.0.0",
-  "main": "server/src/server.js",
-  "scripts": {
+  "main": "index.js",
+  "scripts": {    
     "postinstall": "npm install --prefix server && npm install --prefix client && npm run build --prefix client",
-    "start": "node server/src/server.js"
+    "start": "npm run start --prefix server"
   },
-  "engines": {
-    "node": "18.x"
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }
