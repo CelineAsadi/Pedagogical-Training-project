@@ -11,10 +11,10 @@ import axios from "axios";
 // יהפכו בפועל ל: http://localhost:4000/api/auth/Login
 
 export const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL:import.meta.env.MODE === "development" ? "http://localhost:4000/api" : "/api",
   withCredentials: true,
 });
 
 // גם ברירת מחדל וגם בשם — כדי שלא תצטרך/י לשנות ייבוא בקבצים אחרים
-export default axiosInstance;
-export { axiosInstance };
+// export default axiosInstance;
+// export { axiosInstance };
