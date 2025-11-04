@@ -1,75 +1,75 @@
 // server/src/server.js
-// סימולציה עם START/STOP מהלקוח, בלי AI/Whisper.
 
 const express = require("express");
+const path = require("path");
+const http = require("http");
+const cookieParser = require("cookie-parser");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const { Server } = require("socket.io");
+
 const authRoutes = require("./routes/auth.route");
 const lessonRoutes = require("./routes/lesson.routes");
 const supportRoutes = require("./routes/support.route");
 const behaviorRoutes = require("./routes/behavior.route");
 
-const cors = require("cors");
 const ConnectDB = require("./lib/db");
-const dotenv = require("dotenv");
-const cookieParser = require("cookie-parser");
-const http = require("http");
-const { Server } = require("socket.io");
 
 dotenv.config();
-
 const app = express();
+const server = http.createServer(app);
+
+/* ✅ Middleware */
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-// ✅ רשימת הדומיינים שמורשים לקרוא לשרת
+/* ✅ Allow frontend URLs */
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://pedagogical-training-project-client.vercel.app"
+  "https://pedagogical-training-project-client.vercel.app", // Vercel Client
 ];
 
-// ✅ CORS ל-Express API
 app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
-// טיפול ב־OPTIONS (Preflight)
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin",
-    allowedOrigins.includes(req.headers.origin) ? req.headers.origin : ""
-  );
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200); // מסיים את הבקשה
-  }
-  next();
-});
-// ✅ Routes
+
+/* ✅ Routes */
 app.use("/api/auth", authRoutes);
 app.use("/api", lessonRoutes);
 app.use("/api/supports", supportRoutes);
 app.use("/api/behavior", behaviorRoutes);
 
-// ✅ דף בדיקה
+/* ✅ Test route */
 app.get("/", (req, res) => {
-  res.send("✅ Server is running!");
+  res.send("✅ Server is running successfully!");
 });
 
-// ✅ יצירת שרת HTTP + Socket.io
-const server = http.createServer(app);
+/* ✅ Serve Frontend (Production only) */
+if (process.env.NODE_ENV === "production") {
+  const __dirnamePath = path.resolve();
+  const clientPath = path.join(__dirnamePath, "../client/build");
 
-// ✅ Socket.io עם CORS תואם
+  // Serve built React app
+  app.use(express.static(clientPath));
+
+  // SPA fallback route — all non API goes to index.html
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(clientPath, "index.html"));
+  });
+}
+
+/* ✅ Socket.io setup */
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
-// ✅ Socket.io events
 const {
   startBehaviorLoop,
   stopBehaviorLoop,
@@ -78,7 +78,7 @@ const {
   deactivateLesson,
   upsertStudents,
   pushTeacherResponse,
-  updateStudentPosition
+  updateStudentPosition,
 } = require("./services/behaviorLoop");
 
 io.on("connection", (socket) => {
@@ -96,9 +96,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("lesson:stop", () => deactivateLesson(sessionId));
-
   socket.on("mic:state", (isOn) => setMic(sessionId, !!isOn));
-
   socket.on("student:moved", ({ id, position }) => {
     if (id && position) updateStudentPosition(sessionId, { id, position });
   });
@@ -111,9 +109,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => stopBehaviorLoop(sessionId));
 });
 
-// ✅ הפעלת השרת
+/* ✅ Run server */
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log("✅ Server listening on", PORT);
-  if (typeof ConnectDB === "function") ConnectDB();
+  console.log(`🚀 Server listening on ${PORT}`);
+  ConnectDB();
 });
