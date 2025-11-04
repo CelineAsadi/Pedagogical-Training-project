@@ -4,48 +4,60 @@
 const express = require("express");
 const authRoutes = require("./routes/auth.route");
 const lessonRoutes = require("./routes/lesson.routes");
-
 const supportRoutes = require("./routes/support.route");
+const behaviorRoutes = require("./routes/behavior.route");
+
 const cors = require("cors");
 const ConnectDB = require("./lib/db");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const http = require("http");
+const { Server } = require("socket.io");
 
 dotenv.config();
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
-const corsOptions = {
-    origin: [
-        "http://localhost:3000",
-        "https://pedagogical-training-project-client.vercel.app/"
-       
-        
-    ],
-};
 
-// Middleware
-app.use(cors({
-    origin: '*',  // Allows all origins
-  }));
-  
-app.use(cors(corsOptions));
+// ✅ רשימת הדומיינים שמורשים לקרוא לשרת
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://pedagogical-training-project-client.vercel.app"
+];
+
+// ✅ CORS ל-Express API
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  })
+);
+
+// ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api", lessonRoutes);
-
 app.use("/api/supports", supportRoutes);
-const behaviorRoutes = require("./routes/behavior.route");
 app.use("/api/behavior", behaviorRoutes);
 
-const server = http.createServer(app);
-const { Server } = require("socket.io");
-const io = new Server(server, { cors: { origin: "*" } });
+// ✅ דף בדיקה
 app.get("/", (req, res) => {
   res.send("✅ Server is running!");
 });
 
+// ✅ יצירת שרת HTTP + Socket.io
+const server = http.createServer(app);
+
+// ✅ Socket.io עם CORS תואם
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true
+  }
+});
+
+// ✅ Socket.io events
 const {
   startBehaviorLoop,
   stopBehaviorLoop,
@@ -54,7 +66,7 @@ const {
   deactivateLesson,
   upsertStudents,
   pushTeacherResponse,
-  updateStudentPosition,
+  updateStudentPosition
 } = require("./services/behaviorLoop");
 
 io.on("connection", (socket) => {
@@ -70,9 +82,8 @@ io.on("connection", (socket) => {
   socket.on("lesson:start", ({ durationSec }) => {
     activateLesson(sessionId, (durationSec || 300) * 1000);
   });
-  socket.on("lesson:stop", () => {
-    deactivateLesson(sessionId);
-  });
+
+  socket.on("lesson:stop", () => deactivateLesson(sessionId));
 
   socket.on("mic:state", (isOn) => setMic(sessionId, !!isOn));
 
@@ -85,20 +96,12 @@ io.on("connection", (socket) => {
     pushTeacherResponse(sessionId, { disruptionId, text, ts });
   });
 
-  socket.on("rec:start", ({ durationSec }) => {
-    console.log(`SIM RECORD START | session=${sessionId} | duration=${durationSec || 300}s`);
-  });
-  socket.on("rec:stop", () => {
-    console.log(`SIM RECORD STOP  | session=${sessionId}`);
-  });
-
-  socket.on("disconnect", () => {
-    stopBehaviorLoop(sessionId);
-  });
+  socket.on("disconnect", () => stopBehaviorLoop(sessionId));
 });
 
+// ✅ הפעלת השרת
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log("Server listening on", PORT, "| SIMULATION MODE (Start via lesson:start)");
+  console.log("✅ Server listening on", PORT);
   if (typeof ConnectDB === "function") ConnectDB();
 });
