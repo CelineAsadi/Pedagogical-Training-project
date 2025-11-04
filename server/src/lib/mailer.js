@@ -18,7 +18,7 @@ async function sendEmail(receiverEmail, subject, variableValue) {
     });
 
     const mailOptions = {
-      from: "support@chat.com",
+      from: process.env.EMAIL_ADMIN,
       to: receiverEmail,
       subject: subject,
       html: variableValue
