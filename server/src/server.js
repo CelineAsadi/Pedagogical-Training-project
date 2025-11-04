@@ -44,9 +44,12 @@ app.use("/api/supports", supportRoutes);
 app.use("/api/behavior", behaviorRoutes);
 
 // ✅ דף בדיקה
-app.get("/", (req, res) => {
-  res.send("✅ Server is active & running");
-});
+if (process.env.NODE_ENV !== "production") {
+  app.get("/", (req, res) => {
+    res.send("✅ Server is active & running");
+  });
+}
+
 
 // ✅ Socket.io – גם הוא חייב לדעת מי מותר לו
 const io = new Server(server, {
