@@ -28,18 +28,14 @@ if (typeof ConnectDB === "function") {
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-// ✅ לאפשר קישור מהקליינט בלוקאל וגם מה־Vercel
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://pedagogical-training-project-client.vercel.app"
-];
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://pedagogical-training-project-client.vercel.app/"
+  ],
+  credentials: true
+}));
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-);
 
 // ✅ Routes API
 app.use("/api/auth", authRoutes);

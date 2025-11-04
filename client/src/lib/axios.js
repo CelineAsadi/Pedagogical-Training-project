@@ -11,7 +11,7 @@ import axios from "axios";
 // יהפכו בפועל ל: http://localhost:4000/api/auth/Login
 
 export const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:4000/api",
+  baseURL: process.env.REACT_APP_API_URL,
   withCredentials: true,
 });
 
