@@ -1,48 +1,38 @@
-// email.js
-const nodemailer = require('nodemailer');
+// email.js (Replaced with Resend)
+const { Resend } = require('resend');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
-const verificationCodes = {};
+// ✅ Initialize Resend with your API key from .env
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-async function sendEmail(receiverEmail, subject, variableValue) {
-  try {
-    console.log(process.env.EMAIL_ADMIN,process.env.EMAIL_APP_PASS);
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_ADMIN,
-        pass: process.env.EMAIL_APP_PASS
-      }
-    });
-
-    const mailOptions = {
-      from: process.env.EMAIL_ADMIN,
-      to: receiverEmail,
-      subject: subject,
-      html: variableValue
-    };
-
-    transporter.sendMail(mailOptions, function (err, info) {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log("email sent: " + info.response);
-      }
-    });
-  } catch (err) {
-    console.log(err);
-  }
-}
-
- function generateFourDigitCode() {
+// ✅ Generate 4-digit verification code (same as before)
+function generateFourDigitCode() {
   const min = 1000;
   const max = 9999;
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-module.exports={
-    sendEmail,
-    generateFourDigitCode
+// ✅ Send email using Resend
+async function sendEmail(receiverEmail, subject, htmlContent) {
+  try {
+    console.log("📨 Sending email to:", receiverEmail);
+
+    const response = await resend.emails.send({
+      from: 'Pedagogical Training <onboarding@resend.dev>',  // You can change this later to your own domain
+      to: receiverEmail,
+      subject: subject,
+      html: htmlContent,
+    });
+
+    console.log("✅ Email sent successfully:", response);
+  } catch (error) {
+    console.error("❌ Failed to send email:", error);
+  }
+}
+
+module.exports = {
+  sendEmail,
+  generateFourDigitCode,
 };
