@@ -1,47 +1,46 @@
-// email.js (OAuth2 Gmail)
-const nodemailer = require('nodemailer');
-const { google } = require('googleapis');
-const dotenv = require('dotenv');
+// email.js - Using Gmail API (No SMTP, works on Render)
+const { google } = require("googleapis");
+require("dotenv").config();
 
-dotenv.config();
-
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.GMAIL_CLIENT_ID,
-  process.env.GMAIL_CLIENT_SECRET,
-  "https://developers.google.com/oauthplayground" // redirect URI you used
-);
-
-oAuth2Client.setCredentials({
-  refresh_token: process.env.GMAIL_REFRESH_TOKEN,
-});
-
-async function sendEmail(receiverEmail, subject, variableValue) {
+async function sendEmail(receiverEmail, subject, htmlContent) {
   try {
-    const accessToken = await oAuth2Client.getAccessToken();
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GMAIL_CLIENT_ID,
+      process.env.GMAIL_CLIENT_SECRET,
+      "https://developers.google.com/oauthplayground" // Redirect URI
+    );
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        type: 'OAuth2',
-        user: process.env.EMAIL_ADMIN,
-        clientId: process.env.GMAIL_CLIENT_ID,
-        clientSecret: process.env.GMAIL_CLIENT_SECRET,
-        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-        accessToken: accessToken.token,
-      },
+    oAuth2Client.setCredentials({
+      refresh_token: process.env.GMAIL_REFRESH_TOKEN
     });
 
-    const mailOptions = {
-      from: `Pedagogical Training <${process.env.EMAIL_ADMIN}>`,
-      to: receiverEmail,
-      subject: subject,
-      html: variableValue,
-    };
+    // Get fresh access token
+    const accessToken = await oAuth2Client.getAccessToken();
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent:", info.response);
+    // Use Gmail API
+    const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+    // Encode email as base64 (required by Gmail API)
+    const rawMessage = Buffer.from(
+      `To: ${receiverEmail}\r\n` +
+      `From: "Pedagogical Training" <${process.env.EMAIL_ADMIN}>\r\n` +
+      `Subject: ${subject}\r\n` +
+      `Content-Type: text/html; charset="UTF-8"\r\n\r\n` +
+      htmlContent
+    ).toString("base64").replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    // Send email via Gmail API
+    const result = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw: rawMessage }
+    });
+
+    console.log("✅ Email sent successfully:", result.data.id);
+    return true;
+
   } catch (error) {
     console.error("❌ Error sending email:", error);
+    return false;
   }
 }
 
