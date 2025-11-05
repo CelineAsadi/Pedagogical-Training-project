@@ -1,38 +1,52 @@
-// email.js (Replaced with Resend)
-const { Resend } = require('resend');
+// email.js (OAuth2 Gmail)
+const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
-// ✅ Initialize Resend with your API key from .env
-const resend = new Resend(process.env.RESEND_API_KEY);
+const oAuth2Client = new google.auth.OAuth2(
+  process.env.GMAIL_CLIENT_ID,
+  process.env.GMAIL_CLIENT_SECRET,
+  "https://developers.google.com/oauthplayground" // redirect URI you used
+);
 
-// ✅ Generate 4-digit verification code (same as before)
-function generateFourDigitCode() {
-  const min = 1000;
-  const max = 9999;
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+oAuth2Client.setCredentials({
+  refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+});
 
-// ✅ Send email using Resend
-async function sendEmail(receiverEmail, subject, htmlContent) {
+async function sendEmail(receiverEmail, subject, variableValue) {
   try {
-    console.log("📨 Sending email to:", receiverEmail);
+    const accessToken = await oAuth2Client.getAccessToken();
 
-    const response = await resend.emails.send({
-      from: 'Pedagogical Training <onboarding@resend.dev>',  // You can change this later to your own domain
-      to: receiverEmail,
-      subject: subject,
-      html: htmlContent,
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: process.env.EMAIL_ADMIN,
+        clientId: process.env.GMAIL_CLIENT_ID,
+        clientSecret: process.env.GMAIL_CLIENT_SECRET,
+        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+        accessToken: accessToken.token,
+      },
     });
 
-    console.log("✅ Email sent successfully:", response);
+    const mailOptions = {
+      from: `Pedagogical Training <${process.env.EMAIL_ADMIN}>`,
+      to: receiverEmail,
+      subject: subject,
+      html: variableValue,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent:", info.response);
   } catch (error) {
-    console.error("❌ Failed to send email:", error);
+    console.error("❌ Error sending email:", error);
   }
 }
 
-module.exports = {
-  sendEmail,
-  generateFourDigitCode,
-};
+function generateFourDigitCode() {
+  return Math.floor(1000 + Math.random() * 9000);
+}
+
+module.exports = { sendEmail, generateFourDigitCode };
