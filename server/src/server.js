@@ -5,6 +5,8 @@ const authRoutes = require("./routes/auth.route");
 const lessonRoutes = require("./routes/lesson.routes");
 const supportRoutes = require("./routes/support.route");
 const behaviorRoutes = require("./routes/behavior.route");
+const cron = require("node-cron");
+const axios = require("axios");
 
 const cors = require("cors");
 const ConnectDB = require("./lib/db");
@@ -117,4 +119,15 @@ if (process.env.NODE_ENV === "production") {
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT} (NODE_ENV=${process.env.NODE_ENV})`);
+});
+
+// Cron job – שולח בקשה כל 10 דקות כדי שהשרת לא ייכבה
+cron.schedule("*/10 * * * *", async () => {
+  try {
+    console.log(`⏳ Sending keep-alive ping to ${process.env.SERVER_URL}`);
+    await axios.get(process.env.SERVER_URL);
+    console.log("✅ Server kept alive successfully!");
+  } catch (err) {
+    console.error("❌ Keep-alive failed:", err.message);
+  }
 });
