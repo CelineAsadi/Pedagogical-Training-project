@@ -27,7 +27,7 @@ const Contact = () => {
     if (success) {
  setTimeout(() => {
       navigate("/");
-    }, 1000); //  1 שניות    
+    }, 500); //  0.5 שניות    
     }
   };
 
