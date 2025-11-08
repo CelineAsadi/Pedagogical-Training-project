@@ -4,7 +4,7 @@ const express = require("express");
 const authRoutes = require("./routes/auth.route");
 const lessonRoutes = require("./routes/lesson.routes");
 const supportRoutes = require("./routes/support.route");
-const behaviorRoutes = require("./routes/behavior.route");
+
 const cron = require("node-cron");
 const axios = require("axios");
 
@@ -43,7 +43,7 @@ app.use(cors({
 app.use("/api/auth", authRoutes);
 app.use("/api", lessonRoutes);
 app.use("/api/supports", supportRoutes);
-app.use("/api/behavior", behaviorRoutes);
+
 
 // ✅ דף בדיקה
 if (process.env.NODE_ENV !== "production") {
@@ -64,45 +64,27 @@ const io = new Server(server, {
   }
 });
 
-const {
-  startBehaviorLoop,
-  stopBehaviorLoop,
-  setMic,
-  activateLesson,
-  deactivateLesson,
-  upsertStudents,
-  pushTeacherResponse,
-  updateStudentPosition
-} = require("./services/behaviorLoop");
+
 
 io.on("connection", (socket) => {
   const { sessionId = socket.id } = socket.handshake.query || {};
   socket.join(sessionId);
 
-  startBehaviorLoop({ io, room: sessionId });
-
-  socket.on("class:init", ({ students }) => {
-    if (Array.isArray(students)) upsertStudents(sessionId, students);
-  });
-
+ 
   socket.on("lesson:start", ({ durationSec }) => {
-    activateLesson(sessionId, (durationSec || 300) * 1000);
+   // activateLesson(sessionId, (durationSec || 300) * 1000);
   });
 
-  socket.on("lesson:stop", () => deactivateLesson(sessionId));
+ // socket.on("lesson:stop", () => deactivateLesson(sessionId));
   socket.on("mic:state", (isOn) => setMic(sessionId, !!isOn));
 
   socket.on("student:moved", ({ id, position }) => {
-    if (id && position) updateStudentPosition(sessionId, { id, position });
+    //if (id && position) updateStudentPosition(sessionId, { id, position });
   });
 
-  socket.on("teacher:response", ({ disruptionId, text, ts }) => {
-    if (!disruptionId || !text) return;
-    pushTeacherResponse(sessionId, { disruptionId, text, ts });
-  });
+  
 
-  socket.on("disconnect", () => stopBehaviorLoop(sessionId));
-});
+ }); 
 
 // ✅ Production Mode – אם הקליינט בנוי
 if (process.env.NODE_ENV === "production") {
