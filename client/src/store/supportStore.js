@@ -8,6 +8,7 @@ export const supportStore = create((set,get)=>({
         try{
             const res = await axiosInstance.post('/supports/support',data);
             toast.success('your message was sent successfully');
+            return true;
         } catch(err){
             console.log("Error in sending: ",err);
             toast.error(err.response.data.message);

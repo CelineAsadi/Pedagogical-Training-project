@@ -2,6 +2,7 @@ import { useState } from "react";
 import { axiosInstance } from "../lib/axios";
 import "../style/Contact.css";
 import { supportStore } from "../store/supportStore";
+import { useNavigate } from "react-router-dom";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ const Contact = () => {
   });
 
   const { contactUs } = supportStore();
+  const navigate = useNavigate(); // ✅ ניווט
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,7 +21,11 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    contactUs(formData);
+    //contactUs(formData);
+    const success = await contactUs(formData); // ✅ מחכה לתשובה
+    if (success) {
+      navigate("/"); // ✅ חוזר לעמוד הראשי (או "/" אם תרצי)
+    }
   };
 
 
