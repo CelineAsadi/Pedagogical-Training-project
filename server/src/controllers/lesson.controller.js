@@ -91,3 +91,44 @@ exports.getUserClasses = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+exports.createBasicClass = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // כמה כיתות בסיסיות יש כבר?
+    const count = await LessonSettings.countDocuments({
+      userId,
+      className: { $regex: /^basic/i }
+    });
+
+    const className = `basic-${count + 1}`;
+
+    const newLesson = new LessonSettings({
+      userId,
+      className,
+      classSize: 15,
+      duration: 5,
+      studentTypes: [
+        { name: "Attentive", count: 3 },
+        { name: "Talker", count: 2 },
+        { name: "Defiant", count: 2 },
+        { name: "Sensitive", count: 2 },
+        { name: "Withdrawn", count: 2 },
+        { name: "Conflicts", count: 1 },
+        { name: "Sarcastic", count: 1 },
+        { name: "Hyperactive", count: 1 },
+        { name: "Neutral", count: 1 },
+      ],
+    });
+
+    await newLesson.save();
+
+    res.status(201).json({
+      message: "✅ Basic classroom created",
+      className,
+    });
+  } catch (err) {
+    console.error("❌ Error creating basic class:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

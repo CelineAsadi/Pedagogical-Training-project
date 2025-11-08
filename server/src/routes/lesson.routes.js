@@ -10,4 +10,6 @@ router.post("/lesson/save", protectRoute, saveLessonSettings);
 router.get("/lesson/settings", protectRoute, getLessonSettings);
 // שליפת כל הכיתות של המשתמש
 router.get("/lesson/all", protectRoute, getUserClasses);
+router.post("/lesson/basic", protectRoute, createBasicClass);
+
 module.exports = router;

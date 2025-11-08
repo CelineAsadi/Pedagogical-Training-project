@@ -24,6 +24,15 @@ const MainPage = () => {
   const handleLogout = async () => {
     logout();
   };
+const handleEnterBasicClass = async () => {
+  try {
+    const res = await axiosInstance.post("/lesson/basic", {}, { withCredentials: true });
+    const className = res.data.className;
+    navigate(`/VirtualClassroom?class=${encodeURIComponent(className)}`);
+  } catch (err) {
+    console.error("❌ Failed to create basic class:", err);
+  }
+};
 
   return (
     <div>
@@ -61,7 +70,7 @@ const MainPage = () => {
         <div className="buttons">
           <button
             className="btn"
-            onClick={() => navigate("/VirtualClassroom?type=basic")}
+            onClick={handleEnterBasicClass}
           >
             ENTER THE STANDARD VIRTUAL CLASSROOM
           </button>
