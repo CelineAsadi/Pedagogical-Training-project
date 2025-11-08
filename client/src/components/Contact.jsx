@@ -23,9 +23,11 @@ const Contact = () => {
     e.preventDefault();
     //contactUs(formData);
     const success = await contactUs(formData); // ✅ מחכה לתשובה
+
     if (success) {
-      navigate("/"); // ✅ חוזר לעמוד הראשי (או "/" אם תרצי)
-    }
+ setTimeout(() => {
+      navigate("/");
+    }, 10000); //  10 שניות    }
   };
 
 
