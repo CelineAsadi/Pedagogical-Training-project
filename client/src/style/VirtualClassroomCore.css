@@ -1,0 +1,67 @@
+/* 🔹 Top Bar (Header) */
+.vc-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 14px;
+  z-index: 40;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.vc-header.active {
+  background: #fee2e2;
+}
+
+.vc-header.inactive {
+  background: #f3f4f6;
+}
+
+/* 🔹 Start Button */
+.vc-start-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vc-start-btn.enabled {
+  background: #16a34a;
+}
+
+.vc-start-btn.disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* 🔹 Stop Button */
+.vc-stop-btn {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* 🔹 Class Name Box */
+.vc-class-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+/* 🔹 Main Container */
+.vc-container {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+}

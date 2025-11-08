@@ -48,6 +48,7 @@ export function useClassroomConfig(type = "basic") {
           classSize: 15,
           duration: 5,
           studentTypes: studentTypesData,
+          className,
         });
       }
 

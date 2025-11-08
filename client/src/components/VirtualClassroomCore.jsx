@@ -2,6 +2,7 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
+import "../style/VirtualClassroomCore.css";
 
 import { useClassroomStore, ROOM, SNAP, FACE_FRONT } from '../lib/store';
 import { useDragOnFloor, snapVec3, clampToRoom } from '../lib/drag';
@@ -274,34 +275,58 @@ export default function VirtualClassroomCore({ config }) {
     setStarted(true);
   };
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: '#fff' }}>
+return (
+    <div className="vc-container">
       {/* Top bar */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 48,
-        background: started ? '#fee2e2' : '#f3f4f6',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 12px', fontSize: 14, zIndex: 40, borderBottom: '1px solid #e5e7eb'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className={`vc-header ${started ? "active" : "inactive"}`}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
             onClick={handleStart}
             disabled={started}
-            style={{
-              padding: '8px 14px', borderRadius: 10, border: 'none',
-              background: started ? '#9ca3af' : '#16a34a', color: '#fff',
-              cursor: started ? 'not-allowed' : 'pointer', fontWeight: 600
-            }}>
+            className={`vc-start-btn ${started ? "disabled" : "enabled"}`}
+          >
             START
           </button>
-          <span>{started ? '● מקליט (סימולציה)' : 'לא פעיל'}</span>
+          <span>{started ? "● Recording (Simulation)" : "Inactive"}</span>
         </div>
-        <div>זמן נותר: {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}</div>
-        <div>{isRecording ? 'מיקרופון פעיל' : 'מיקרופון כבוי'}</div>
+
+        {/* Stop Button */}
+        <button
+          onClick={() => {
+            socketRef.current?.emit("lesson:stop");
+            clearInterval(timerRef.current);
+            setStarted(false);
+          }}
+          className="vc-stop-btn"
+        >
+          ⛔ END
+        </button>
+
+        {/* Class Name */}
+        <div className="vc-class-box">
+          <span>Class:</span>
+          <span>{config?.className}</span>
+        </div>
+
+        {/* Time */}
+        <div>
+          TIME ⏱ :{" "}
+          {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:
+          {String(timeLeft % 60).padStart(2, "0")}
+        </div>
+
+        {/* Mic Status */}
+        <div>{isRecording ? "🎤 Mic Active" : "🔇 Mic Off"}</div>
       </div>
 
+      {/* Canvas & Scene */}
       <Canvas shadows camera={{ position: [0, 5.8, -7.2], fov: 50 }}>
-        <Scene speakingMap={speakingMap} onStudentMoved={(id, pos) => socketRef.current?.emit('student:moved', { id, position: pos })} />
+        <Scene
+          speakingMap={speakingMap}
+          onStudentMoved={(id, pos) =>
+            socketRef.current?.emit("student:moved", { id, position: pos })
+          }
+        />
       </Canvas>
 
       <HUDControls />
