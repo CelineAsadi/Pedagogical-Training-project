@@ -3,7 +3,7 @@ const LessonSettings = require("../models/LessonSettings");
 /**
  * ויצירה שמירת הגדרות כיתה למשתמש
  */
-exports.saveLessonSettings = async (req, res) => {
+ exports.saveLessonSettings = async (req, res) => {
  try {
     const userId = req.user._id;
     const { className, classSize, duration, studentTypes } = req.body;
@@ -52,7 +52,7 @@ exports.saveLessonSettings = async (req, res) => {
 /**
  * שליפת כיתה ספציפית  למשתמש
  */
-exports.getLessonSettings = async (req, res) => {
+ exports.getLessonSettings = async (req, res) => {
   try {
     const userId = req.user._id;
     const { className } = req.query; // נוסיף תמיכה בפרמטר מה-URL
@@ -76,7 +76,7 @@ exports.getLessonSettings = async (req, res) => {
 /**
  * ✅ שליפת כל הכיתות של המשתמש
  */
-exports.getUserClasses = async (req, res) => {
+ exports.getUserClasses = async (req, res) => {
   try {
     const userId = req.user._id;
 
@@ -91,7 +91,7 @@ exports.getUserClasses = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-exports.createBasicClass = async (req, res) => {
+ exports.createBasicClass = async (req, res) => {
   try {
     const userId = req.user._id;
 
