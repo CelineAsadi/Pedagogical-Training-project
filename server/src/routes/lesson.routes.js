@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { saveLessonSettings, getLessonSettings,getUserClasses } = require("../controllers/lesson.controller");
+const { saveLessonSettings, getLessonSettings,getUserClasses,createBasicClass  } = require("../controllers/lesson.controller");
 const protectRoute = require("../middleware/auth.middleware"); // middleware קיים אצלך
 
 // שמירת הגדרות כיתה
