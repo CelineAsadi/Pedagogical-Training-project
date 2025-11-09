@@ -3,7 +3,6 @@ import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import "../style/VirtualClassroomCore.css";
-const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 import { useClassroomStore, ROOM, SNAP, FACE_FRONT } from '../lib/store';
 import { useDragOnFloor, snapVec3, clampToRoom } from '../lib/drag';
@@ -204,6 +203,7 @@ export default function VirtualClassroomCore({ config }) {
   const setLastDisruption = useClassroomStore(s => s.setLastDisruption);
   const addDisruption = useClassroomStore(s => s.addDisruption);
   const addTeacherResponse = useClassroomStore(s => s.addTeacherResponse);
+const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const sessionId = useRef(crypto.randomUUID()).current;
   const socketRef = useRef(null);
@@ -366,3 +366,4 @@ return (
     )}
   </div>
 );
+}
