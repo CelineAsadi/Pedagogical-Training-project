@@ -191,9 +191,9 @@ function HUDControls() {
       display: 'flex', gap: 10, background: 'rgba(255,255,255,0.95)',
       border: '1px solid #ddd', borderRadius: 14, padding: 10, zIndex: 20
     }}>
-      <Btn onClick={() => rotateSelected(-SNAP.rotateRad)}>↶ סובב</Btn>
-      <Btn onClick={() => rotateSelected(SNAP.rotateRad)}>↷ סובב</Btn>
-      <Btn onClick={faceFront}>יישור קדימה ⬆︎</Btn>
+      <Btn onClick={() => rotateSelected(-SNAP.rotateRad)}>↶ Rotate Left</Btn>
+      <Btn onClick={() => rotateSelected(SNAP.rotateRad)}>↷ Rotate Right</Btn>
+      <Btn onClick={faceFront}>Face Forward ⬆︎</Btn>
     </div>
   );
   
