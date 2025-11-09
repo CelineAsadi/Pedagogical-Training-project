@@ -65,3 +65,62 @@
   inset: 0;
   background: #fff;
 }
+/* Hamburger Icon */
+.vc-hamburger {
+  font-size: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-right: 15px;
+}
+
+/* Sidebar Panel */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: -350px;
+  width: 300px;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -3px 0 8px rgba(0,0,0,0.2);
+  padding: 20px;
+  transition: 0.3s ease;
+  z-index: 200;
+}
+
+.sidebar.open {
+  right: 0;
+}
+
+.sidebar h2 {
+  margin-bottom: 15px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.sidebar li {
+  margin: 5px 0;
+}
+
+/* Close Button */
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  float: right;
+  cursor: pointer;
+}
+
+/* Dark overlay behind sidebar */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  z-index: 150;
+}

@@ -3,6 +3,7 @@ import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import "../style/VirtualClassroomCore.css";
+const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 import { useClassroomStore, ROOM, SNAP, FACE_FRONT } from '../lib/store';
 import { useDragOnFloor, snapVec3, clampToRoom } from '../lib/drag';
@@ -276,60 +277,92 @@ export default function VirtualClassroomCore({ config }) {
   };
 
 return (
-    <div className="vc-container">
-      {/* Top bar */}
-      <div className={`vc-header ${started ? "active" : "inactive"}`}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            onClick={handleStart}
-            disabled={started}
-            className={`vc-start-btn ${started ? "disabled" : "enabled"}`}
-          >
-            START
-          </button>
-          <span>{started ? "● Recording (Simulation)" : "Inactive"}</span>
-        </div>
-
-        {/* Stop Button */}
+  <div className="vc-container">
+    {/* ===== TOP BAR ===== */}
+    <div className={`vc-header ${started ? "active" : "inactive"}`}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <button
-          onClick={() => {
-            socketRef.current?.emit("lesson:stop");
-            clearInterval(timerRef.current);
-            setStarted(false);
-          }}
-          className="vc-stop-btn"
+          onClick={handleStart}
+          disabled={started}
+          className={`vc-start-btn ${started ? "disabled" : "enabled"}`}
         >
-          ⛔ END
+          START
         </button>
-
-        {/* Class Name */}
-        <div className="vc-class-box">
-          <span>Class:</span>
-          <span>{config?.className}</span>
-        </div>
-
-        {/* Time */}
-        <div>
-          TIME ⏱ :{" "}
-          {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:
-          {String(timeLeft % 60).padStart(2, "0")}
-        </div>
-
-        {/* Mic Status */}
-        <div>{isRecording ? "🎤 Mic Active" : "🔇 Mic Off"}</div>
+        <span>{started ? "● Recording (Simulation)" : "Inactive"}</span>
       </div>
 
-      {/* Canvas & Scene */}
-      <Canvas shadows camera={{ position: [0, 5.8, -7.2], fov: 50 }}>
-        <Scene
-          speakingMap={speakingMap}
-          onStudentMoved={(id, pos) =>
-            socketRef.current?.emit("student:moved", { id, position: pos })
-          }
-        />
-      </Canvas>
+      {/* Stop Button */}
+      <button
+        onClick={() => {
+          socketRef.current?.emit("lesson:stop");
+          clearInterval(timerRef.current);
+          setStarted(false);
+        }}
+        className="vc-stop-btn"
+      >
+        ⛔ END
+      </button>
 
-      <HUDControls />
+      {/* Class Name */}
+      <div className="vc-class-box">
+        <span>Class:</span>
+        <span>{config?.className}</span>
+      </div>
+
+      {/* Time */}
+      <div>
+        TIME ⏱ :{" "}
+        {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:
+        {String(timeLeft % 60).padStart(2, "0")}
+      </div>
+
+      {/* Mic Status */}
+      <div>{isRecording ? "🎤 Mic Active" : "🔇 Mic Off"}</div>
+
+      {/* === Hamburger Menu (3 lines) === */}
+      <button
+        className="vc-hamburger"
+        onClick={() => setIsSidebarOpen(true)}
+      >
+        ☰
+      </button>
     </div>
-  );
-}
+
+    {/* ===== MAIN CANVAS ===== */}
+    <Canvas shadows camera={{ position: [0, 5.8, -7.2], fov: 50 }}>
+      <Scene
+        speakingMap={speakingMap}
+        onStudentMoved={(id, pos) =>
+          socketRef.current?.emit("student:moved", { id, position: pos })
+        }
+      />
+    </Canvas>
+
+    <HUDControls />
+
+    {/* ===== SIDEBAR (CLASS DETAILS) ===== */}
+    <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
+      <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>
+        ×
+      </button>
+      <h2>📘 Class Details</h2>
+      <p><strong>Name:</strong> {config?.className}</p>
+      <p><strong>Duration:</strong> {config?.duration} min</p>
+      <p><strong>Total Students:</strong> {config?.classSize}</p>
+
+      <hr />
+
+      <h3>👥 Student Types:</h3>
+      <ul>
+        {config?.studentTypes?.map((s, i) => (
+          <li key={i}>{s.name} – {s.count}</li>
+        ))}
+      </ul>
+    </div>
+
+    {/* Overlay */}
+    {isSidebarOpen && (
+      <div className="overlay" onClick={() => setIsSidebarOpen(false)}></div>
+    )}
+  </div>
+);
