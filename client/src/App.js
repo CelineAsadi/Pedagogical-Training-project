@@ -49,7 +49,7 @@ function App() {
           />
           <Route
             path="/Signup"
-            element={!authUser ? <Signup /> : <Navigate to="/MainPage" replace />}
+            element={!authUser ? <Signup /> : <Navigate to="/Login" replace />}
           />
           <Route
             path="/Forgetpassword"
