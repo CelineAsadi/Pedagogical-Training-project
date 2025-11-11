@@ -53,7 +53,7 @@ function App() {
           />
           <Route
             path="/Forgetpassword"
-            element={!authUser ? <Forgetpassword /> : <Navigate to="/MainPage" replace />}
+            element={!authUser ? <Forgetpassword /> : <Navigate to="/Login" replace />}
           />
           <Route path="/Contact" element={<Contact />} />
           <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />

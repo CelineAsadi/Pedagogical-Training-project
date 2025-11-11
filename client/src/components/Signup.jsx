@@ -2,11 +2,10 @@ import { useState } from "react";
 import "../style/Signup.css";
 import toast from "react-hot-toast";
 import { authStore } from "../store/authStore";
-import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
   const { signup, verifyNewEmail } = authStore();
-  const navigate = useNavigate();
+ 
 
   const [formData, setFormData] = useState({
     fname: "",
@@ -55,7 +54,7 @@ const Signup = () => {
       return;
     }
 
-   const ok = await signup({
+    signup({
       FName: formData.fname,
       LName: formData.lname,
       Email: formData.email,
@@ -65,7 +64,7 @@ const Signup = () => {
       TeachExp: formData.teachExp,
       ProfileImage: formData.gender === "Female" ? "/female.png" : "/male.png",
     });
-    if (ok) navigate("/Login"); 
+    
 
   };
 
