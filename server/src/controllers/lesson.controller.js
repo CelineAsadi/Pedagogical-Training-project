@@ -6,12 +6,12 @@ const LessonSettings = require("../models/LessonSettings");
  exports.saveLessonSettings = async (req, res) => {
  try {
     const userId = req.user._id;
-    const { className, classSize, duration, studentTypes } = req.body;
+    const { className, classSize, duration, studentTypes , lessonTopic } = req.body;
 
     console.log("Creating class for user:", userId, className);
 
     // בדיקות תקינות בסיסיות
-    if (!className || !classSize || !duration || !studentTypes) {
+    if (!className || !classSize || !duration || !studentTypes  ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -27,6 +27,8 @@ const LessonSettings = require("../models/LessonSettings");
       classSize,
       duration,
       studentTypes,
+      lessonTopic: lessonTopic ? lessonTopic.trim() : "",
+   
     });
 
     await newLesson.save();
@@ -94,8 +96,8 @@ const LessonSettings = require("../models/LessonSettings");
  exports.createBasicClass = async (req, res) => {
   try {
     const userId = req.user._id;
+     const { lessonTopic } = req.body; // ✅ נוספה שורה
 
-    // כמה כיתות בסיסיות יש כבר?
     const count = await LessonSettings.countDocuments({
       userId,
       className: { $regex: /^basic/i }
@@ -106,6 +108,7 @@ const LessonSettings = require("../models/LessonSettings");
     const newLesson = new LessonSettings({
       userId,
       className,
+      lessonTopic: lessonTopic ? lessonTopic.trim() : "", // ✅ נוספה שורה
       classSize: 15,
       duration: 5,
       studentTypes: [

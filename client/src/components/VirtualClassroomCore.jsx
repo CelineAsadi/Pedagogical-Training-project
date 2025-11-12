@@ -215,6 +215,7 @@ const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const timerRef = useRef(null);
 
+
   useEffect(() => {
     const socket = createSocket(sessionId);
     socketRef.current = socket;
@@ -276,6 +277,7 @@ const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     setStarted(true);
   };
 
+
 return (
   <div className="vc-container">
     {/* ===== TOP BAR ===== */}
@@ -307,6 +309,8 @@ return (
       <div className="vc-class-box">
         <span>Class:</span>
         <span>{config?.className}</span>
+ <span style={{ marginLeft: "15px" }}>🧠 Topic:</span>
+  <span>{config?.lessonTopic || "—"}</span>
       </div>
 
       {/* Time */}
@@ -347,6 +351,8 @@ return (
       </button>
       <h2>📘 Class Details</h2>
       <p><strong>Name:</strong> {config?.className}</p>
+      <p><strong>Class Topic:</strong> {config?.lessonTopic}</p>
+
       <p><strong>Duration:</strong> {config?.duration} min</p>
       <p><strong>Total Students:</strong> {config?.classSize}</p>
 

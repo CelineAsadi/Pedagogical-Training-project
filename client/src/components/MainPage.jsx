@@ -6,6 +6,9 @@ import { authStore } from "../store/authStore";
 
 const MainPage = () => {
   const [user, setUser] = useState(null);
+  const [lessonTopic, setLessonTopic] = useState("");//add
+const [topicConfirmed, setTopicConfirmed] = useState(false);//add
+
   const { logout } = authStore();
   const navigate = useNavigate();                    
 
@@ -26,13 +29,15 @@ const MainPage = () => {
   };
 const handleEnterBasicClass = async () => {
   try {
-    const res = await axiosInstance.post("/lesson/basic", {}, { withCredentials: true });
+    const res = await axiosInstance.post("/lesson/basic", {lessonTopic}, { withCredentials: true });
     const className = res.data.className;
     navigate(`/VirtualClassroom?class=${encodeURIComponent(className)}`);
   } catch (err) {
     console.error("❌ Failed to create basic class:", err);
   }
 };
+
+
 
   return (
     <div>
@@ -59,30 +64,59 @@ const handleEnterBasicClass = async () => {
       </nav>
 
       {/* 🔹 Main Section */}
-      <section className="main-hero">
-        <h1>
-          Welcome to <span>Pedagogical Training</span>
-        </h1>
-        <p>
-          Practice classroom management in a safe, AI-powered environment. Choose your path
-          and start improving your teaching skills 🚀
-        </p>
-        <div className="buttons">
-          <button
-            className="btn"
-            onClick={handleEnterBasicClass}
-          >
-            ENTER THE STANDARD VIRTUAL CLASSROOM
-          </button>
+<section className="main-hero">
+  <h1>
+    Welcome to <span>Pedagogical Training</span>
+  </h1>
+  <p>
+    Practice classroom management in a safe, AI-powered environment. Choose your path
+    and start improving your teaching skills 🚀
+  </p>
 
-          <button
-            className="btn"
-            onClick={() => navigate("/LessonSettings")}
-          >
-            SET UP A CLASSROOM
-          </button>
-        </div>
-      </section>
+  {/* ======= שלב הוספת נושא השיעור ======= */}
+  {!topicConfirmed ? (
+    <div className="topic-input-container">
+      <h3>🧠 Please enter your lesson topic:</h3>
+      <input
+        type="text"
+        placeholder="e.g., Fractions, Reading Comprehension..."
+        value={lessonTopic}
+        onChange={(e) => setLessonTopic(e.target.value)}
+        className="topic-input"
+      />
+      <button
+        className="btn"
+        onClick={() => {
+          if (!lessonTopic.trim()) {
+            alert("Please enter a topic first!");
+            return;
+          }
+          setTopicConfirmed(true);
+        }}
+      >
+        OK
+      </button>
+    </div>
+  ) : (
+    /* ======= הכפתורים הרגילים ======= */
+    <div className="buttons">
+      <button
+        className="btn"
+        onClick={handleEnterBasicClass}
+      >
+        ENTER THE STANDARD VIRTUAL CLASSROOM
+      </button>
+
+      <button
+        className="btn"
+        onClick={() => navigate(`/LessonSettings?topic=${encodeURIComponent(lessonTopic)}`)}
+      >
+        SET UP A CLASSROOM
+      </button>
+    </div>
+  )}
+</section>
+
 
       {/* 🧩 Virtual Classroom Description */}
       <section className="classroom-info">

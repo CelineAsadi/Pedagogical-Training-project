@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import "../style/LessonSettings.css";
 import { axiosInstance } from "../lib/axios";
 import { Link, useNavigate } from "react-router-dom";  
+import { useSearchParams } from "react-router-dom";
+
 const LessonSettings = () => {
   const [user, setUser] = useState(null);
   const { logout } = authStore();
@@ -11,6 +13,9 @@ const LessonSettings = () => {
   const [duration, setDuration] = useState(5);
   const navigate = useNavigate();                    
   const [className, setClassName] = useState("");
+ const [searchParams] = useSearchParams();
+const initialTopic = searchParams.get("topic") || "";
+const [lessonTopic] = useState(initialTopic);
 
   const [studentTypes, setStudentTypes] = useState([
     { name: "Attentive", count: 0 },
@@ -60,7 +65,7 @@ if (!className.trim()) return toast.error("Please enter a class name.");
   try {
     const res = await axiosInstance.post(
       "/lesson/save",
-      { classSize, duration, studentTypes,className },
+      { classSize, duration, studentTypes,className,lessonTopic },
       { withCredentials: true } 
     );
 
@@ -157,6 +162,7 @@ if (!className.trim()) return toast.error("Please enter a class name.");
                   </div>
                 </div>
               ))}
+
             </div>
 
           </div>

@@ -25,7 +25,8 @@ export function useClassroomConfig(type = "basic") {
           );
           const data = res.data;
           if (data && data.studentTypes) studentTypesData = data.studentTypes;
-          setConfig(data);
+          setConfig({...data,lessonTopic: data.lessonTopic || "", // ✅ שומר נושא השיעור מהשרת
+        });
         } catch (err) {
           console.warn("❌ No custom config found, loading default.");
         }
@@ -33,6 +34,11 @@ export function useClassroomConfig(type = "basic") {
 
       // ברירת מחדל אם אין custom
       if (studentTypesData.length === 0) {
+        const res = await axiosInstance.get(
+            `/lesson/settings?className=${encodeURIComponent(className)}`,
+            { withCredentials: true }
+          );
+          const data = res.data;
         studentTypesData = [
           { name: "Attentive", count: 3 },
           { name: "Talker", count: 2 },
@@ -49,6 +55,7 @@ export function useClassroomConfig(type = "basic") {
           duration: 5,
           studentTypes: studentTypesData,
           className,
+          lessonTopic: data.lessonTopic,//add
         });
       }
 

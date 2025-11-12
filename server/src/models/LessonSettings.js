@@ -29,6 +29,7 @@ const lessonSettingsSchema = new mongoose.Schema({
       count: { type: Number, required: true, min: 0 },
     },
   ],
+   lessonTopic: { type: String, default: "", required: true }, //  add
 }, { timestamps: true });
 
 // ⚙️ אינדקס חדש: שם כיתה ייחודי למשתמש עצמו
