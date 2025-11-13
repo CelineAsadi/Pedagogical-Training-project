@@ -218,15 +218,21 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
         )}
       </group>
 
-{      /* Label */}
-      <Html distanceFactor={10} position={[0, -0.66, 0]} style={{ pointerEvents:'none' }}>
-        <div style={{
-          background:'rgba(255,255,255,0.95)', padding:'2px 6px',
-          borderRadius:6, border:'1px solid #ddd', fontSize:12
-        }}>
-          {student.name} ({student.behaviorProfile}) · {student.gender === 'F' ? 'girl' : 'boy'}
-        </div>
-      </Html>
+{/* Label on shirt */}
+<Html distanceFactor={14} position={[0, -0.011, 0.15]} style={{ pointerEvents: 'none' }}>
+  <div style={{
+    background: 'rgba(255,255,255,0.9)',
+    padding: '2px 6px',
+    borderRadius: 6,
+    border: '1px solid #ccc',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  }}>
+    {student.name}
+  </div>
+</Html>
+
 
       {/* Speech bubble */}
       {speakingText && (

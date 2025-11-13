@@ -59,25 +59,57 @@ export function useClassroomConfig(type = "basic") {
         });
       }
 
-      // ✅ נוודא שלכל תלמיד יש מושב ייחודי
-      const students = [];
-      let chairIndex = 0;
+     // ✅ English name lists (15 boys + 15 girls)
+const maleNames = [
+  "Adam", "Ben", "Daniel", "Eli", "Tom", "Lior", "Noam", "Omer", "David", "Yoni",
+  "Liam", "Josh", "Aaron", "Ethan", "Sam"
+];
 
-      for (const t of studentTypesData) {
-        for (let i = 0; i < t.count; i++) {
-          if (chairIndex >= chairs.length) break; // אין יותר מושבים
+const femaleNames = [
+  "Sara", "Lia", "Noa", "Maya", "Dana", "Roni", "Tamar", "Yael", "Hila", "Neta",
+  "Emma", "Olivia", "Sophia", "Ava", "Isabella"
+];
 
-          const seat = chairs[chairIndex];
-          students.push({
-            id: nanoid(),
-            name: `${t.name} ${i + 1}`,
-            gender: Math.random() < 0.5 ? "F" : "M",
-            behaviorProfile: t.name.toLowerCase(),
-            seatId: seat.id,
-          });
-          chairIndex++;
-        }
-      }
+// ✅ Function to get a unique name
+function getUniqueName(list) {
+  if (list.length === 0) return "NoName"; // fallback if names run out
+  const index = Math.floor(Math.random() * list.length);
+  const name = list[index];
+  list.splice(index, 1); // remove used name
+  return name;
+}
+
+// ✅ Ensure each student has a unique seat and name
+const students = [];
+let chairIndex = 0;
+
+// Make copies of the name lists so we don't empty the originals
+let availableMaleNames = [...maleNames];
+let availableFemaleNames = [...femaleNames];
+
+for (const t of studentTypesData) {
+  for (let i = 0; i < t.count; i++) {
+    if (chairIndex >= chairs.length) break; // no more seats
+
+    const seat = chairs[chairIndex];
+    const gender = Math.random() < 0.5 ? "F" : "M";
+    const name =
+      gender === "F"
+        ? getUniqueName(availableFemaleNames)
+        : getUniqueName(availableMaleNames);
+
+    students.push({
+      id: nanoid(),
+      name, // 🧒 unique English name
+      gender,
+      behaviorProfile: t.name.toLowerCase(),
+      seatId: seat.id,
+    });
+
+    chairIndex++;
+  }
+}
+
 
       // ✅ עדכון בטוח ל־store (לא מוחק פריטים אחרים)
       useClassroomStore.setState((state) => ({ ...state, students }));

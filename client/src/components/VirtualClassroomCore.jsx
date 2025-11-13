@@ -358,12 +358,15 @@ return (
 
       <hr />
 
-      <h3>👥 Student Types:</h3>
-      <ul>
-        {config?.studentTypes?.map((s, i) => (
-          <li key={i}>{s.name} – {s.count}</li>
-        ))}
-      </ul>
+     <h3>👩‍🏫 Students in Class:</h3>
+<ul>
+  {useClassroomStore.getState().students.map((s, i) => (
+    <li key={s.id}>
+      <strong>{s.name}</strong> – {s.behaviorProfile}
+    </li> 
+  ))}
+</ul>
+
     </div>
 
     {/* Overlay */}
