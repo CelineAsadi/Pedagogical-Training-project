@@ -45,7 +45,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "https://pedagogical-training-project-client.vercel.app",
+     // "https://pedagogical-training-project-client.vercel.app",
       "https://pedagogical-training-project.onrender.com",
     ],
     credentials: true,
@@ -79,7 +79,7 @@ const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:3000",
-       "https://pedagogical-training-project-client.vercel.app",
+       //"https://pedagogical-training-project-client.vercel.app",
       "https://pedagogical-training-project.onrender.com",
     ],
     credentials: true,
