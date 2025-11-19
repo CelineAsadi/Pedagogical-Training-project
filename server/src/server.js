@@ -45,7 +45,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-     // "https://pedagogical-training-project-client.vercel.app",
+      //"https://pedagogical-training-project-client.vercel.app",
       "https://pedagogical-training-project.onrender.com",
     ],
     credentials: true,
@@ -80,7 +80,7 @@ const io = new Server(server, {
     origin: [
       "http://localhost:3000",
        //"https://pedagogical-training-project-client.vercel.app",
-      "https://pedagogical-training-project.onrender.com",
+     // "https://pedagogical-training-project.onrender.com",
     ],
     credentials: true,
   },
@@ -153,7 +153,7 @@ function startLessonForSession(io, sessionId, durationSec = 300) {
 
   console.log(`▶️ Starting lesson for session ${sessionId} (duration ${durationSec}s)`);
 
-  const intervalMs = 15000;
+  const intervalMs = 3000;
 
   const timer = setInterval(async () => {
   const current = lessonState.get(sessionId);
