@@ -1,5 +1,9 @@
 import io from 'socket.io-client';
-const BASE = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const BASE = process.env.REACT_APP_API_URL || 'http://localhost:4000' || "https://pedagogical-training-project.onrender.com";
 export function createSocket(sessionId) {
-  return io(BASE, { query: { sessionId } });
+  //return io(BASE, { query: { sessionId } });
+  return io(BASE, {
+    transports: ["websocket"],
+    query: { sessionId },
+  });
 }
