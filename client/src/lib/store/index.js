@@ -189,16 +189,72 @@ export const useClassroomStore = create((set, get) => ({
       };
     }),
 
-  /* ===== אירועי סימולציה ===== */
+   /* ===== אירועי סימולציה ===== */
+
+  // 🔴 כל ההפרעות הפעילות/היסטוריות בסימולציה
+  // כל הפרעה: { id, sessionId?, studentId, studentName?, type, label, utteranceText, startedAt, endedAt }
   disruptions: [],
+
+  // 🔵 תגובות מורה (טקסט + מאפייני קול וכו') – תשתמשי בהמשך לניתוח GPT
   teacherResponses: [],
+
+  // 🟡 ההפרעה האחרונה שקרתה (כדי לקשר בקלות לתגובה אחריה)
   lastDisruption: null,
 
-  addDisruption: (d) =>
-    set((s) => ({ disruptions: [...s.disruptions, d] })),
+  // ✅ יצירת הפרעה חדשה (נקודת הכניסה *היחידה* מהקליינט)
+  startDisruption: ({
+    id,
+    sessionId,
+    studentId,
+    studentName,
+    type,
+    label,
+    utteranceText,
+    ts, // timestamp מהשרת אם קיים
+  }) =>
+    set((state) => {
+      const startedAt = ts || Date.now();
+      const disruption = {
+        id: id || nanoid(),
+        sessionId: sessionId || null,
+        studentId,
+        studentName: studentName || null,
+        type: type || "unknown",
+        label: label || utteranceText || "Disruption",
+        utteranceText: utteranceText || "",
+        startedAt,
+        endedAt: null,
+      };
 
-  addTeacherResponse: (r) =>
-    set((s) => ({ teacherResponses: [...s.teacherResponses, r] })),
+      return {
+        disruptions: [...state.disruptions, disruption],
+        lastDisruption: {
+          studentId: studentId,
+          disruptionId: disruption.id,
+          utteranceText: disruption.utteranceText,
+          timestamp: startedAt,
+        },
+      };
+    }),
+
+  // ✅ סימון הפרעה כסגורה (GPT החליט שנגמרה / אחרי תגובת המורה)
+  endDisruption: (disruptionId) =>
+    set((state) => ({
+      disruptions: state.disruptions.map((d) =>
+        d.id === disruptionId && !d.endedAt
+          ? { ...d, endedAt: Date.now() }
+          : d
+      ),
+    })),
+
+  // ✅ אם בא לך לנקות הכל בסוף שיעור
+  clearDisruptions: () => set({ disruptions: [], lastDisruption: null }),
+
+  // ✅ שמירת תגובת מורה (תמלול + מאפייני קול) – בשלב הבא כשתוסיפי מיקרופון
+  addTeacherResponse: (response) =>
+    set((state) => ({
+      teacherResponses: [...state.teacherResponses, response],
+    })),
 
   setLastDisruption: (d) => set({ lastDisruption: d }),
 }));

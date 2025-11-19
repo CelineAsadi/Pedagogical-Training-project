@@ -7,7 +7,7 @@ import VirtualClassroomCore from "./VirtualClassroomCore";
 export default function VirtualClassroom() {
   const [searchParams] = useSearchParams();
   const type = searchParams.get("type") || "basic"; // ברירת מחדל
-
+const sessionId = searchParams.get("sessionId") ;
   // טוען את ההגדרות (custom מה-DB או basic ברירת מחדל)
   const { config, loading } = useClassroomConfig(type);
 
@@ -38,8 +38,14 @@ export default function VirtualClassroom() {
       >
         No classroom configuration found.
       </div>
+      
     );
   }
 
-  return <VirtualClassroomCore config={config} />;
+ return (
+    <VirtualClassroomCore
+      config={config}
+      sessionId={sessionId} // ObjectId אמיתי מהשרת
+    />
+  );
 }

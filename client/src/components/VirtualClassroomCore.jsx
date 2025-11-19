@@ -1,19 +1,25 @@
 // client/src/components/VirtualClassroomCore.jsx
-import React, { useMemo, useRef, useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { ContactShadows } from '@react-three/drei';
+import React, { useMemo, useRef, useEffect, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import { ContactShadows } from "@react-three/drei";
 import "../style/VirtualClassroomCore.css";
 
-import { useClassroomStore, ROOM, SNAP, FACE_FRONT } from '../lib/store';
-import { useDragOnFloor, snapVec3, clampToRoom } from '../lib/drag';
-import { createSocket } from '../lib/socket';
-import StudentAvatar from './StudentAvatar';
+import { useClassroomStore, ROOM, SNAP, FACE_FRONT } from "../lib/store";
+import { useDragOnFloor, snapVec3, clampToRoom } from "../lib/drag";
+import { createSocket } from "../lib/socket";
+import StudentAvatar from "./StudentAvatar";
+import { speakStudentUtterance } from "../lib/studentVoices";
+import { useTeacherVoiceAnalysis } from "../hooks/useTeacherVoiceAnalysis";
+import { useTeacherSpeechRecognition } from "../hooks/useTeacherSpeechRecognition";
+import { axiosInstance } from "../lib/axios";
 
 const AVATAR_Y = 0.55;
 
 /* ===== RoomShell ===== */
 function RoomShell() {
-  const w = ROOM.width, d = ROOM.depth, h = 3;
+  const w = ROOM.width,
+    d = ROOM.depth,
+    h = 3;
   return (
     <group>
       {/* Floor */}
@@ -47,13 +53,22 @@ function RoomShell() {
 function Desk({ item, onSelect }) {
   const moveItem = useClassroomStore((s) => s.moveItem);
   const { startDrag } = useDragOnFloor({
-    onDrag: (p) => moveItem(item.id, snapVec3(clampToRoom([p.x, 0, p.z])), item.rotation),
+    onDrag: (p) =>
+      moveItem(
+        item.id,
+        snapVec3(clampToRoom([p.x, 0, p.z])),
+        item.rotation
+      ),
   });
   return (
     <group
       position={item.position}
       rotation={item.rotation}
-      onPointerDown={(e) => { e.stopPropagation(); onSelect(item.id); startDrag(e); }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        onSelect(item.id);
+        startDrag(e);
+      }}
     >
       <mesh castShadow>
         <boxGeometry args={[1.0, 0.65, 0.7]} />
@@ -67,13 +82,22 @@ function Desk({ item, onSelect }) {
 function Chair({ item, onSelect }) {
   const moveItem = useClassroomStore((s) => s.moveItem);
   const { startDrag } = useDragOnFloor({
-    onDrag: (p) => moveItem(item.id, snapVec3(clampToRoom([p.x, 0, p.z])), item.rotation),
+    onDrag: (p) =>
+      moveItem(
+        item.id,
+        snapVec3(clampToRoom([p.x, 0, p.z])),
+        item.rotation
+      ),
   });
   return (
     <group
       position={item.position}
       rotation={item.rotation}
-      onPointerDown={(e) => { e.stopPropagation(); onSelect(item.id); startDrag(e); }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        onSelect(item.id);
+        startDrag(e);
+      }}
     >
       <mesh castShadow>
         <boxGeometry args={[0.5, 0.1, 0.5]} />
@@ -100,7 +124,9 @@ function Scene({ speakingMap, onStudentMoved }) {
 
   const chairsById = useMemo(() => {
     const d = {};
-    items.filter(i => i.type === 'chair').forEach(ch => d[ch.id] = ch);
+    items
+      .filter((i) => i.type === "chair")
+      .forEach((ch) => (d[ch.id] = ch));
     return d;
   }, [items]);
 
@@ -114,15 +140,16 @@ function Scene({ speakingMap, onStudentMoved }) {
       <RoomShell />
 
       {items
-        .filter(it => it.type === 'desk' || it.type === 'chair')
-        .map(it =>
-          it.type === 'desk'
-            ? <Desk key={it.id} item={it} onSelect={select} />
-            : <Chair key={it.id} item={it} onSelect={select} />
+        .filter((it) => it.type === "desk" || it.type === "chair")
+        .map((it) =>
+          it.type === "desk" ? (
+            <Desk key={it.id} item={it} onSelect={select} />
+          ) : (
+            <Chair key={it.id} item={it} onSelect={select} />
+          )
         )}
 
       {students.map((s) => {
-        // בסיס לפי כיסא/שורת המתנה
         const chair = s.seatId ? chairsById[s.seatId] : null;
         let basePos, baseRot;
         if (chair) {
@@ -134,7 +161,6 @@ function Scene({ speakingMap, onStudentMoved }) {
           baseRot = FACE_FRONT;
         }
 
-        // override חלקי בלבד (אם יש) — לא לרוקן position כשמגיע רק rotation
         const override = studentTransforms[s.id] || {};
         const pos = override.position ?? basePos;
         const rot = override.rotation ?? baseRot;
@@ -154,119 +180,247 @@ function Scene({ speakingMap, onStudentMoved }) {
         );
       })}
 
-      <ContactShadows position={[0, 0, 0]} opacity={0.35} scale={18} blur={2.5} far={4} />
+      <ContactShadows
+        position={[0, 0, 0]}
+        opacity={0.35}
+        scale={18}
+        blur={2.5}
+        far={4}
+      />
     </>
   );
 }
 
 /* ===== HUD ===== */
 function HUDControls() {
-  const selectionId = useClassroomStore(s => s.selectionId);
-  const items = useClassroomStore(s => s.items);
-  const moveItem = useClassroomStore(s => s.moveItem);
-  const moveStudent = useClassroomStore(s => s.moveStudent);
-  const rotateSelected = useClassroomStore(s => s.rotateSelected);
-  const faceFront = useClassroomStore(s => s.faceFront);
+  const selectionId = useClassroomStore((s) => s.selectionId);
+  const rotateSelected = useClassroomStore((s) => s.rotateSelected);
+  const faceFront = useClassroomStore((s) => s.faceFront);
 
   if (!selectionId) return null;
-
-  const step = SNAP.translate;
-  const isItem = items.some(it => it.id === selectionId);
-
- 
 
   const Btn = ({ children, onClick }) => (
     <button
       onClick={onClick}
       style={{
-        fontSize: 18, padding: '12px 16px', borderRadius: 12,
-        background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer'
+        fontSize: 18,
+        padding: "12px 16px",
+        borderRadius: 12,
+        background: "#3b82f6",
+        color: "#fff",
+        border: "none",
+        cursor: "pointer",
       }}
-    >{children}</button>
+    >
+      {children}
+    </button>
   );
 
   return (
-    <div style={{
-      position: 'absolute', left: '50%', bottom: 16, transform: 'translateX(-50%)',
-      display: 'flex', gap: 10, background: 'rgba(255,255,255,0.95)',
-      border: '1px solid #ddd', borderRadius: 14, padding: 10, zIndex: 20
-    }}>
+    <div
+      style={{
+        position: "absolute",
+        left: "50%",
+        bottom: 16,
+        transform: "translateX(-50%)",
+        display: "flex",
+        gap: 10,
+        background: "rgba(255,255,255,0.95)",
+        border: "1px solid #ddd",
+        borderRadius: 14,
+        padding: 10,
+        zIndex: 20,
+      }}
+    >
       <Btn onClick={() => rotateSelected(-SNAP.rotateRad)}>↶ Rotate Left</Btn>
       <Btn onClick={() => rotateSelected(SNAP.rotateRad)}>↷ Rotate Right</Btn>
       <Btn onClick={faceFront}>Face Forward ⬆︎</Btn>
     </div>
   );
-  
 }
-/* ===== Main Core ===== */
-export default function VirtualClassroomCore({ config }) {
-  const setLastDisruption = useClassroomStore(s => s.setLastDisruption);
-  const addDisruption = useClassroomStore(s => s.addDisruption);
-  const addTeacherResponse = useClassroomStore(s => s.addTeacherResponse);
-const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const sessionId = useRef(crypto.randomUUID()).current;
+/* ===== Main Core ===== */
+export default function VirtualClassroomCore({ config, sessionId }) {
+  // ✅ אם ההורה מעביר sessionId נשתמש בו, אחרת ניצור UUID פנימי
+  //const sessionIdRef = useRef(externalSessionId );
+  //const sessionId = sessionIdRef.current;
+ if (!sessionId) {
+    console.error("❌ VirtualClassroomCore: missing sessionId prop!");
+  }
+// ===== Zustand store actions & selectors =====
+  const setLastDisruption = useClassroomStore((s) => s.setLastDisruption);
+  const startDisruption = useClassroomStore((s) => s.startDisruption);
+  const addTeacherResponse = useClassroomStore((s) => s.addTeacherResponse);
+  const lastDisruption = useClassroomStore((s) => s.lastDisruption);
+
+  // ===== Local UI state =====
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   const socketRef = useRef(null);
   const [speakingMap, setSpeakingMap] = useState({});
   const bubbleTimers = useRef(new Map());
   const [started, setStarted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [timeLeft, setTimeLeft] = useState((config?.duration ?? 5) * 60);
-
   const timerRef = useRef(null);
 
+  const { features: voiceFeatures } = useTeacherVoiceAnalysis({
+    enabled: started,
+  });
 
+  const handleTeacherFinalUtterance = async (teacherText, meta) => {
+    console.log("🗣️ [DEBUG] Teacher final text:", teacherText);
+    console.log("📊 [DEBUG] Voice features snapshot:", voiceFeatures);
+    console.log("⚡ [DEBUG] lastDisruption:", lastDisruption);
+    console.log("🧾 [DEBUG] SR meta:", meta);
+
+    const payload = {
+      sessionId, // 👈 עכשיו זה ה-ObjectId מהשרת (string)
+      teacherText,
+      voiceFeatures: {
+        volume: voiceFeatures.volume,
+        pitch: voiceFeatures.pitch,
+        tone: voiceFeatures.tone,
+      },
+      disruption: lastDisruption || null,
+    };
+
+    console.log("📤 [DEBUG] Sending teacher response to server:", payload);
+
+    try {
+      const res = await axiosInstance.post(
+        "/feedback/teacher-response",
+        payload,
+        { withCredentials: true }
+      );
+
+      console.log("✅ [DEBUG] Server response:", res.data);
+      addTeacherResponse(res.data);
+    } catch (err) {
+      console.error("❌ [DEBUG] Error saving teacher response:", err);
+    }
+  };
+
+  useTeacherSpeechRecognition({
+    enabled: started,
+    language: "he-IL",
+    onFinalUtterance: handleTeacherFinalUtterance,
+  });
+
+  // ===== Socket.io – קבלת ההפרעות מהשרת =====
   useEffect(() => {
-    const socket = createSocket(sessionId);
+    if (!sessionId) return; // ביטחון
+
+    const socket = createSocket(sessionId); // 👈 sessionId אמיתי
     socketRef.current = socket;
 
-    socket.on('disruption', (payload) => {
-      addDisruption?.({
-        disruptionId: payload.disruptionId,
+    socket.on("disruption", (payload) => {
+      console.log("📢 GOT DISRUPTION:", payload);
+
+      startDisruption({
+        id: payload.disruptionId,
+        sessionId,
         studentId: payload.studentId,
-        text: payload.utteranceText,
-        ts: payload.ts
+        studentName: payload.studentName,
+        type: payload.type,
+        label: payload.label || payload.utteranceText,
+        utteranceText: payload.utteranceText,
+        ts: payload.ts,
       });
 
-      setSpeakingMap(prev => ({ ...prev, [payload.studentId]: payload.utteranceText }));
-      setLastDisruption({ studentId: payload.studentId, utteranceText: payload.utteranceText, timestamp: Date.now() });
+      setSpeakingMap((prev) => ({
+        ...prev,
+        [payload.studentId]: payload.utteranceText,
+      }));
 
-      if (bubbleTimers.current.has(payload.studentId)) clearTimeout(bubbleTimers.current.get(payload.studentId));
-      bubbleTimers.current.set(payload.studentId, setTimeout(() => {
-        setSpeakingMap(prev => {
-          const next = { ...prev }; delete next[payload.studentId]; return next;
-        });
-        bubbleTimers.current.delete(payload.studentId);
-      }, 3000));
+      setLastDisruption({
+        disruptionId: payload.disruptionId,
+        studentId: payload.studentId,
+        studentName: payload.studentName,
+        type: payload.type,
+        label: payload.label,
+        utteranceText: payload.utteranceText,
+        ts: payload.ts,
+      });
+
+      const state = useClassroomStore.getState();
+      const student = state.students.find(
+        (s) => s.id === payload.studentId
+      );
+
+      const gender =
+        student?.gender === "F"
+          ? "F"
+          : student?.gender === "M"
+          ? "M"
+          : "neutral";
+
+      speakStudentUtterance({
+        studentId: payload.studentId,
+        gender,
+        text: payload.utteranceText,
+      });
+
+      if (bubbleTimers.current.has(payload.studentId)) {
+        clearTimeout(bubbleTimers.current.get(payload.studentId));
+      }
+      bubbleTimers.current.set(
+        payload.studentId,
+        setTimeout(() => {
+          setSpeakingMap((prev) => {
+            const next = { ...prev };
+            delete next[payload.studentId];
+            return next;
+          });
+          bubbleTimers.current.delete(payload.studentId);
+        }, 3000)
+      );
     });
 
     return () => {
       clearInterval(timerRef.current);
-      socket.emit('rec:stop', {});
+      try {
+        socket.emit("rec:stop", {});
+        socket.emit("lesson:stop");
+      } catch (e) {}
       socket.disconnect();
-      bubbleTimers.current.forEach(t => clearTimeout(t));
+      bubbleTimers.current.forEach((t) => clearTimeout(t));
       bubbleTimers.current.clear();
     };
-  }, [sessionId, addDisruption, setLastDisruption]);
+  }, [sessionId, startDisruption, setLastDisruption]);
 
+  // ===== התחלת סימולציה =====
   const handleStart = async () => {
     if (!socketRef.current) return;
+
+    const students = useClassroomStore.getState().students;
+
+    // 👇 עכשיו שולחים גם topic כמו שתיקנת:
+    socketRef.current.emit("lesson:students", {
+      students,
+      lessonTopic: config?.lessonTopic || "",
+    });
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
-      mr.start();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+      console.log("🎤 Mic stream acquired for teacher:", stream);
       setIsRecording(true);
     } catch (err) {
-      console.warn('Microphone error:', err);
+      console.warn("Microphone error:", err);
       setIsRecording(false);
     }
-    socketRef.current.emit('lesson:start', { durationSec: (config?.duration ?? 5) * 60 });
-    setTimeLeft((config?.duration ?? 5) * 60);
+
+    const durationSec = (config?.duration ?? 5) * 60;
+    socketRef.current.emit("lesson:start", { durationSec , sessionId });
+
+    setTimeLeft(durationSec);
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
-          socketRef.current?.emit('lesson:stop');
+          socketRef.current?.emit("lesson:stop"  , {sessionId} );
           clearInterval(timerRef.current);
           setStarted(false);
           return 0;
@@ -274,105 +428,142 @@ const [isSidebarOpen, setIsSidebarOpen] = useState(false);
         return t - 1;
       });
     }, 1000);
+
     setStarted(true);
   };
 
 
-return (
-  <div className="vc-container">
-    {/* ===== TOP BAR ===== */}
-    <div className={`vc-header ${started ? "active" : "inactive"}`}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <button
-          onClick={handleStart}
-          disabled={started}
-          className={`vc-start-btn ${started ? "disabled" : "enabled"}`}
-        >
-          START
+
+  // ===== עצירת סימולציה =====
+  const handleStop = () => {
+    socketRef.current?.emit("lesson:stop"  , {sessionId});
+    clearInterval(timerRef.current);
+    setStarted(false);
+    setIsRecording(false);
+  };
+
+  // ===== JSX =====
+  return (
+    <div className="vc-container">
+      {/* ===== TOP BAR ===== */}
+      <div className={`vc-header ${started ? "active" : "inactive"}`}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={handleStart}
+            disabled={started}
+            className={`vc-start-btn ${started ? "disabled" : "enabled"}`}
+          >
+            START
+          </button>
+
+          <button
+            onClick={() => {
+              if (!("speechSynthesis" in window)) {
+                console.warn("SpeechSynthesis not supported");
+                return;
+              }
+              const u = new SpeechSynthesisUtterance(
+                "Test voice, one two three"
+              );
+              u.lang = "he-IL";
+              window.speechSynthesis.speak(u);
+            }}
+            className="vc-test-voice-btn"
+          >
+            🔊 Test Voice
+          </button>
+
+          <span>{started ? "● Recording (Simulation)" : "Inactive"}</span>
+        </div>
+
+        <button onClick={handleStop} className="vc-stop-btn">
+          ⛔ END
         </button>
-        <span>{started ? "● Recording (Simulation)" : "Inactive"}</span>
+
+        <div className="vc-class-box">
+          <span>Class:</span>
+          <span>{config?.className}</span>
+          <span style={{ marginLeft: "15px" }}>🧠 Topic:</span>
+          <span>{config?.lessonTopic || "—"}</span>
+        </div>
+
+        <div>
+          TIME ⏱ :{" "}
+          {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:
+          {String(timeLeft % 60).padStart(2, "0")}
+        </div>
+
+        <div>{isRecording ? "🎤 Mic Active" : "🔇 Mic Off"}</div>
+
+        <button
+          className="vc-hamburger"
+          onClick={() => setIsSidebarOpen(true)}
+        >
+          ☰
+        </button>
       </div>
 
-      {/* Stop Button */}
-      <button
-        onClick={() => {
-          socketRef.current?.emit("lesson:stop");
-          clearInterval(timerRef.current);
-          setStarted(false);
-        }}
-        className="vc-stop-btn"
-      >
-        ⛔ END
-      </button>
+      {/* ===== MAIN CANVAS ===== */}
+      <Canvas shadows camera={{ position: [0, 5.8, -7.2], fov: 50 }}>
+        <Scene
+          speakingMap={speakingMap}
+          onStudentMoved={(id, pos) =>
+            socketRef.current?.emit("student:moved", {
+              id,
+              position: pos,
+            })
+          }
+        />
+      </Canvas>
 
-      {/* Class Name */}
-      <div className="vc-class-box">
-        <span>Class:</span>
-        <span>{config?.className}</span>
- <span style={{ marginLeft: "15px" }}>🧠 Topic:</span>
-  <span>{config?.lessonTopic || "—"}</span>
+      <HUDControls />
+
+      {/* ===== SIDEBAR ===== */}
+      <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
+        <button
+          className="close-btn"
+          onClick={() => setIsSidebarOpen(false)}
+        >
+          ×
+        </button>
+        <h2>📘 Class Details</h2>
+        <p>
+          <strong>Name:</strong> {config?.className}
+        </p>
+        <p>
+          <strong>Class Topic:</strong> {config?.lessonTopic}</p>
+        <p>
+          <strong>Duration:</strong> {config?.duration} min
+        </p>
+        <p>
+          <strong>Total Students:</strong> {config?.classSize}
+        </p>
+
+        <hr />
+
+        <h3>👩‍🏫 Students in Class:</h3>
+        <ul>
+          {useClassroomStore.getState().students.map((s) => (
+            <li key={s.id}>
+              <strong>{s.name}</strong> – {s.behaviorProfile}
+            </li>
+          ))}
+        </ul>
+
+        <hr />
+
+        <h3>🎚️ Teacher Voice Snapshot (debug):</h3>
+        <p>Volume: {voiceFeatures.volume.toFixed(3)}</p>
+        <p>Pitch: {voiceFeatures.pitch.toFixed(3)}</p>
+        <p>Tone: {voiceFeatures.tone}</p>
       </div>
 
-      {/* Time */}
-      <div>
-        TIME ⏱ :{" "}
-        {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:
-        {String(timeLeft % 60).padStart(2, "0")}
-      </div>
-
-      {/* Mic Status */}
-      <div>{isRecording ? "🎤 Mic Active" : "🔇 Mic Off"}</div>
-
-      {/* === Hamburger Menu (3 lines) === */}
-      <button
-        className="vc-hamburger"
-        onClick={() => setIsSidebarOpen(true)}
-      >
-        ☰
-      </button>
+      {isSidebarOpen && (
+        <div
+          className="overlay"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
     </div>
-
-    {/* ===== MAIN CANVAS ===== */}
-    <Canvas shadows camera={{ position: [0, 5.8, -7.2], fov: 50 }}>
-      <Scene
-        speakingMap={speakingMap}
-        onStudentMoved={(id, pos) =>
-          socketRef.current?.emit("student:moved", { id, position: pos })
-        }
-      />
-    </Canvas>
-
-    <HUDControls />
-
-    {/* ===== SIDEBAR (CLASS DETAILS) ===== */}
-    <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
-      <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>
-        ×
-      </button>
-      <h2>📘 Class Details</h2>
-      <p><strong>Name:</strong> {config?.className}</p>
-      <p><strong>Class Topic:</strong> {config?.lessonTopic}</p>
-
-      <p><strong>Duration:</strong> {config?.duration} min</p>
-      <p><strong>Total Students:</strong> {config?.classSize}</p>
-
-      <hr />
-
-     <h3>👩‍🏫 Students in Class:</h3>
-<ul>
-  {useClassroomStore.getState().students.map((s, i) => (
-    <li key={s.id}>
-      <strong>{s.name}</strong> – {s.behaviorProfile}
-    </li> 
-  ))}
-</ul>
-
-    </div>
-
-    {/* Overlay */}
-    {isSidebarOpen && (
-      <div className="overlay" onClick={() => setIsSidebarOpen(false)}></div>
-    )}
-  </div>
-);
+  );
 }

@@ -1,109 +1,274 @@
 // server/src/server.js
 
 const express = require("express");
+const http = require("http");
+const path = require("path");
+
+const cors = require("cors");
+const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
+const cron = require("node-cron");
+const axios = require("axios");
+const { Server } = require("socket.io");
+
+const ConnectDB = require("./lib/db");
 const authRoutes = require("./routes/auth.route");
 const lessonRoutes = require("./routes/lesson.routes");
 const supportRoutes = require("./routes/support.route");
+const { generateDisruptionUtterance } = require("./services/gptDisruption.service");
+const feedbackRoutes = require("./routes/feedback.route");
+const sessionRoutes = require("./routes/session.routes");
 
-const cron = require("node-cron");
-const axios = require("axios");
-
-const cors = require("cors");
-const ConnectDB = require("./lib/db");
-const dotenv = require("dotenv");
-const cookieParser = require("cookie-parser");
-const http = require("http");
-const { Server } = require("socket.io");
-const path = require("path");
 
 dotenv.config();
 
+/* =========================
+   🔌 Express + HTTP Server
+   ========================= */
 const app = express();
 const server = http.createServer(app);
 
-// ✅ חיבור ל־MongoDB
+/* =========================
+   🗄️ MongoDB Connection
+   ========================= */
 if (typeof ConnectDB === "function") {
   ConnectDB();
 }
 
-// ✅ כדי להבטיח שהשרת יודע לעבוד עם JSON + COOKIE
+/* =========================
+   ⚙️ Global Middlewares
+   ========================= */
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://pedagogical-training-project-client.vercel.app"
-  ],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://pedagogical-training-project-client.vercel.app",
+    ],
+    credentials: true,
+  })
+);
 
-
-// ✅ Routes API
+/* =========================
+   🚏 REST API Routes
+   ========================= */
 app.use("/api/auth", authRoutes);
 app.use("/api", lessonRoutes);
 app.use("/api/supports", supportRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/session", sessionRoutes);
 
 
-// ✅ דף בדיקה
+/* =========================
+   🧪 Health Check (Dev Only)
+   ========================= */
 if (process.env.NODE_ENV !== "production") {
   app.get("/", (req, res) => {
     res.send("✅ Server is active & running");
   });
 }
 
-
-// ✅ Socket.io – גם הוא חייב לדעת מי מותר לו
+/* =========================
+   🔁 Socket.io Setup
+   ========================= */
+   
 const io = new Server(server, {
   cors: {
-    origin:[
-    "http://localhost:3000",
-    //"https://pedagogical-training-project-client.vercel.app"
-  ],
-    credentials: true
-  }
+    origin: [
+      "http://localhost:3000",
+      // "https://pedagogical-training-project-client.vercel.app"
+    ],
+    credentials: true,
+  },
 });
 
+/* ==================================================
+   🔥 מנוע הפרעות – מצב בזיכרון לכל sessionId
+   lessonState: Map<sessionId, { students: [], timer: NodeJS.Timeout | null }>
+   ================================================== */
+const lessonState = new Map();
+
+/** 🛑 עצירת שיעור + ניקוי טיימר עבור session */
+function stopLessonForSession(io, sessionId) {
+  const state = lessonState.get(sessionId);
+  if (!state) return;
+
+  if (state.timer) {
+    clearInterval(state.timer);
+    state.timer = null;
+  }
+
+  lessonState.set(sessionId, state);
+  console.log(`🛑 Lesson stopped for session ${sessionId}`);
+}
+
+/** 🧠 בניית הפרעה בהתאם לפרופיל ההתנהגות של התלמיד */
+function buildDisruptionForStudent(student) {
+  const profile = (student.behaviorProfile || "").toLowerCase();
+
+  let type = "neutral";
+  let label = "תלמיד";
+
+  if (profile === "attentive") {
+    type = "attentive";
+    label = "קשוב";
+  } else if (profile === "talker") {
+    type = "talker";
+    label = "מדבר";
+  } else if (profile === "defiant") {
+    type = "defiant";
+    label = "מתנגד";
+  } else if (profile === "sensitive") {
+    type = "sensitive";
+    label = "רגיש";
+  } else if (profile === "withdrawn") {
+    type = "withdrawn";
+    label = "מסתגר";
+  } else if (profile === "conflicts") {
+    type = "conflicts";
+    label = "קונפליקטים";
+  } else if (profile === "sarcastic") {
+    type = "sarcastic";
+    label = "סרקסטי";
+  } else if (profile === "hyperactive") {
+    type = "hyperactive";
+    label = "היפראקטיבי";
+  }
+
+  return { type, label };
+}
 
 
+/** ▶️ הפעלת שיעור + התחלת יצירת הפרעות רנדומליות */
+function startLessonForSession(io, sessionId, durationSec = 300) {
+  let state = lessonState.get(sessionId) || { students: [], timer: null };
+
+  if (state.timer) {
+    clearInterval(state.timer);
+  }
+
+  console.log(`▶️ Starting lesson for session ${sessionId} (duration ${durationSec}s)`);
+
+  const intervalMs = 15000;
+
+  const timer = setInterval(async () => {
+  const current = lessonState.get(sessionId);
+  if (!current || !current.students || current.students.length === 0) {
+    console.log(`⚠️ No students for session ${sessionId}, skipping disruption`);
+    return;
+  }
+
+  const students = current.students;
+  const randIndex = Math.floor(Math.random() * students.length);
+  const student = students[randIndex];
+
+  const d = buildDisruptionForStudent(student);
+
+  let utteranceText;
+  try {
+    // 🧠 כאן GPT מייצר את כל הטקסט – אין יותר ברירת מחדל ידנית
+    utteranceText = await generateDisruptionUtterance({
+      student,
+      lessonTopic: current.lessonTopic,
+      label: d.label,
+    });
+  } catch (err) {
+    console.error("❌ GPT disruption error, skipping this disruption:", err.message);
+    return; // לא משדרים הפרעה בלי GPT
+  }
+
+  const payload = {
+    disruptionId: `${sessionId}-${Date.now()}`,
+    studentId: student.id,
+    studentName: student.name,
+    type: d.type,
+    label: d.label,
+    utteranceText,
+    ts: Date.now(),
+  };
+
+  console.log("📢 Emitting disruption:", payload);
+  io.to(sessionId).emit("disruption", payload);
+}, intervalMs);
+
+
+  state.timer = timer;
+  lessonState.set(sessionId, state);
+
+  setTimeout(() => {
+    stopLessonForSession(io, sessionId);
+  }, durationSec * 1000);
+}
+
+
+/* =========================
+   🎧 Socket.io Event Handlers
+   ========================= */
 io.on("connection", (socket) => {
   const { sessionId = socket.id } = socket.handshake.query || {};
   socket.join(sessionId);
 
- 
+  console.log(`🔌 Client connected. sessionId=${sessionId}`);
+
+  // ✅ הקליינט שולח את רשימת התלמידים בתחילת השיעור
+  socket.on("lesson:students", ({ students, lessonTopic }) => {
+  const prev = lessonState.get(sessionId) || {};
+  lessonState.set(sessionId, {
+    ...prev,
+    students: students || [],
+    lessonTopic: lessonTopic || "",
+  });
+  console.log(
+    `👨‍👩‍👧‍👦 Received ${students?.length || 0} students for session ${sessionId}, topic="${lessonTopic}"`
+  );
+});
+
+
+  // ✅ התחלת שיעור → מפעיל מנוע ההפרעות
   socket.on("lesson:start", ({ durationSec }) => {
-   // activateLesson(sessionId, (durationSec || 300) * 1000);
+    startLessonForSession(io, sessionId, durationSec || 300);
   });
 
- // socket.on("lesson:stop", () => deactivateLesson(sessionId));
-  socket.on("mic:state", (isOn) => setMic(sessionId, !!isOn));
-
-  socket.on("student:moved", ({ id, position }) => {
-    //if (id && position) updateStudentPosition(sessionId, { id, position });
+  // ✅ עצירת שיעור מהקליינט
+  socket.on("lesson:stop", () => {
+    stopLessonForSession(io, sessionId);
   });
 
-  
+  // ✅ ניקוי כאשר הלקוח מתנתק
+  socket.on("disconnect", () => {
+    console.log(`🔌 Client disconnected. sessionId=${sessionId}`);
+    stopLessonForSession(io, sessionId);
+  });
+});
 
- }); 
-
-// ✅ Production Mode – אם הקליינט בנוי
+/* =========================
+   📦 Static Client (Production)
+   ========================= */
 if (process.env.NODE_ENV === "production") {
   const clientPath = path.join(__dirname, "../../client/build");
   app.use(express.static(clientPath));
 
-  // ✅ במקום app.get("*") – משתמשים ב־Regex כדי למנוע את שגיאת PathError
+  // משרת את ה־React app לכל ראוט שאינו /api
   app.get(/^\/(?!api).*/, (req, res) => {
     res.sendFile(path.join(clientPath, "index.html"));
   });
 }
 
-// ✅ Start Server
+/* =========================
+   🚀 Start HTTP + Socket Server
+   ========================= */
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT} (NODE_ENV=${process.env.NODE_ENV})`);
+  console.log(
+    `🚀 Server running on port ${PORT} (NODE_ENV=${process.env.NODE_ENV})`
+  );
 });
 
-// Cron job – שולח בקשה כל 10 דקות כדי שהשרת לא ייכבה
+/* =========================
+   ⏰ Keep-Alive Cron (לשרתים כמו Render/Heroku)
+   ========================= */
 cron.schedule("*/10 * * * *", async () => {
   try {
     console.log(`⏳ Sending keep-alive ping to ${process.env.SERVER_URL}`);

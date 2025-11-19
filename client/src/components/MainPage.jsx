@@ -27,13 +27,42 @@ const [topicConfirmed, setTopicConfirmed] = useState(false);//add
   const handleLogout = async () => {
     logout();
   };
+// client/src/components/MainPage.jsx (קטע רלוונטי)
+
 const handleEnterBasicClass = async () => {
   try {
-    const res = await axiosInstance.post("/lesson/basic", {lessonTopic}, { withCredentials: true });
-    const className = res.data.className;
-    navigate(`/VirtualClassroom?class=${encodeURIComponent(className)}`);
+    if (!lessonTopic.trim()) {
+      alert("Please enter a lesson topic first!");
+      return;
+    }
+
+    // 1️⃣ יצירת שיעור בסיס בשרת
+    const lessonRes = await axiosInstance.post(
+      "/lesson/basic",
+      { lessonTopic },
+      { withCredentials: true }
+    );
+
+    const { lessonId, className } = lessonRes.data;
+
+    // 2️⃣ יצירת Session אמיתי
+    const sessionRes = await axiosInstance.post(
+      "/session/start",
+      { lessonId },
+      { withCredentials: true }
+    );
+
+    const sessionId = sessionRes.data.sessionId;
+
+    // 3️⃣ מעבר לכיתה – חשוב להעביר גם class וגם sessionId
+    navigate(
+      `/VirtualClassroom?class=${encodeURIComponent(
+        className
+      )}&sessionId=${sessionId}&type=basic`
+    );
   } catch (err) {
-    console.error("❌ Failed to create basic class:", err);
+    console.error("❌ Error starting basic Session:", err);
+    alert("Could not start your session. Try again.");
   }
 };
 

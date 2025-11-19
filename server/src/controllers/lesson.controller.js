@@ -93,14 +93,15 @@ const LessonSettings = require("../models/LessonSettings");
     res.status(500).json({ message: "Internal server error" });
   }
 };
- exports.createBasicClass = async (req, res) => {
+ // server/src/controllers/lesson.controller.js
+exports.createBasicClass = async (req, res) => {
   try {
     const userId = req.user._id;
-     const { lessonTopic } = req.body; // ✅ נוספה שורה
+    const { lessonTopic } = req.body;
 
     const count = await LessonSettings.countDocuments({
       userId,
-      className: { $regex: /^basic/i }
+      className: { $regex: /^basic/i },
     });
 
     const className = `basic-${count + 1}`;
@@ -108,7 +109,7 @@ const LessonSettings = require("../models/LessonSettings");
     const newLesson = new LessonSettings({
       userId,
       className,
-      lessonTopic: lessonTopic ? lessonTopic.trim() : "", // ✅ נוספה שורה
+      lessonTopic: lessonTopic ? lessonTopic.trim() : "",
       classSize: 15,
       duration: 5,
       studentTypes: [
@@ -129,6 +130,7 @@ const LessonSettings = require("../models/LessonSettings");
     res.status(201).json({
       message: "✅ Basic classroom created",
       className,
+      lessonId: newLesson._id.toString(), // 👈 מוסיפים את זה
     });
   } catch (err) {
     console.error("❌ Error creating basic class:", err);
