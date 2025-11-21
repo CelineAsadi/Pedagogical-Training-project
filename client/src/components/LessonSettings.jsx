@@ -49,9 +49,12 @@ const [lessonTopic] = useState(initialTopic);
     };
     fetchUser();
   }, []);
+// 
+
 const handleSubmit = async (e) => {
   e.preventDefault();
-if (!className.trim()) return toast.error("Please enter a class name.");
+
+  if (!className.trim()) return toast.error("Please enter a class name.");
 
   if (totalStudents > classSize) {
     toast.error("Total students exceed class size!");
@@ -63,17 +66,35 @@ if (!className.trim()) return toast.error("Please enter a class name.");
   }
 
   try {
+    // 1️⃣ שמירת הגדרות השיעור בשרת
     const res = await axiosInstance.post(
       "/lesson/save",
-      { classSize, duration, studentTypes,className,lessonTopic },
-      { withCredentials: true } 
+      { classSize, duration, studentTypes, className, lessonTopic },
+      { withCredentials: true }
     );
 
     toast.success(res.data.message || "Lesson settings saved ✅");
-    setTimeout(() => {
-     navigate(`/VirtualClassroom?type=custom&class=${encodeURIComponent(className)}`);
 
-    }, 800); // עיכוב קטן כדי שיראו את ההודעה
+    // 👇 נשלוף את ה-lesson מתוך התשובה
+    const savedLesson = res.data.lesson;
+    const lessonId = savedLesson._id;          // ObjectId של LessonSettings
+    const savedClassName = savedLesson.className; // כבר lowercase לפי הסכמה
+
+    // 2️⃣ יצירת Session אמיתי לפי ה-lessonId
+    const sessionRes = await axiosInstance.post(
+      "/session/start",
+      { lessonId },
+      { withCredentials: true }
+    );
+
+    const sessionId = sessionRes.data.sessionId;
+
+    // 3️⃣ מעבר לכיתה – type=custom + class + sessionId
+    navigate(
+      `/VirtualClassroom?type=custom&class=${encodeURIComponent(
+        savedClassName || className
+      )}&sessionId=${sessionId}`
+    );
   } catch (err) {
     console.error("Error saving settings:", err.response?.data || err.message);
     toast.error(err.response?.data?.message || "Failed to save settings");
