@@ -22,6 +22,16 @@ server/coverage/
 client/.env
 server/.env
 
+# -----------------------------
+# 🔑 Google Cloud / Secrets
+# -----------------------------
+google-service-key.json
+google-key.json
+*service-account*.json
+*credentials*.json
+*.secret.json
+
+
 # misc
 .DS_Store
 .pnp

@@ -10,7 +10,7 @@ const cookieParser = require("cookie-parser");
 const cron = require("node-cron");
 const axios = require("axios");
 const { Server } = require("socket.io");
-
+const ttsRoutes = require("./routes/tts.route");
 const ConnectDB = require("./lib/db");
 const authRoutes = require("./routes/auth.route");
 const lessonRoutes = require("./routes/lesson.routes");
@@ -59,6 +59,7 @@ app.use("/api", lessonRoutes);
 app.use("/api/supports", supportRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/session", sessionRoutes);
+app.use("/api/tts", ttsRoutes);
 
 
 /* =========================

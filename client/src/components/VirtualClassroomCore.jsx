@@ -8,7 +8,9 @@ import { useClassroomStore, ROOM, SNAP, FACE_FRONT } from "../lib/store";
 import { useDragOnFloor, snapVec3, clampToRoom } from "../lib/drag";
 import { createSocket } from "../lib/socket";
 import StudentAvatar from "./StudentAvatar";
-import { speakStudentUtterance } from "../lib/studentVoices";
+// 🔊 במקום speechSynthesis הפנימי – TTS מהשרת
+import { playTTSAudio } from "../lib/ttsClient";
+
 import { useTeacherVoiceAnalysis } from "../hooks/useTeacherVoiceAnalysis";
 import { useTeacherSpeechRecognition } from "../hooks/useTeacherSpeechRecognition";
 import { axiosInstance } from "../lib/axios";
@@ -241,13 +243,11 @@ function HUDControls() {
 
 /* ===== Main Core ===== */
 export default function VirtualClassroomCore({ config, sessionId }) {
-  // ✅ אם ההורה מעביר sessionId נשתמש בו, אחרת ניצור UUID פנימי
-  //const sessionIdRef = useRef(externalSessionId );
-  //const sessionId = sessionIdRef.current;
- if (!sessionId) {
+  if (!sessionId) {
     console.error("❌ VirtualClassroomCore: missing sessionId prop!");
   }
-// ===== Zustand store actions & selectors =====
+
+  // ===== Zustand store actions & selectors =====
   const setLastDisruption = useClassroomStore((s) => s.setLastDisruption);
   const startDisruption = useClassroomStore((s) => s.startDisruption);
   const addTeacherResponse = useClassroomStore((s) => s.addTeacherResponse);
@@ -275,7 +275,7 @@ export default function VirtualClassroomCore({ config, sessionId }) {
     console.log("🧾 [DEBUG] SR meta:", meta);
 
     const payload = {
-      sessionId, // 👈 עכשיו זה ה-ObjectId מהשרת (string)
+      sessionId, // ObjectId של Session מהשרת
       teacherText,
       voiceFeatures: {
         volume: voiceFeatures.volume,
@@ -309,12 +309,12 @@ export default function VirtualClassroomCore({ config, sessionId }) {
 
   // ===== Socket.io – קבלת ההפרעות מהשרת =====
   useEffect(() => {
-    if (!sessionId) return; // ביטחון
+    if (!sessionId) return;
 
-    const socket = createSocket(sessionId); // 👈 sessionId אמיתי
+    const socket = createSocket(sessionId);
     socketRef.current = socket;
 
-    socket.on("disruption", (payload) => {
+    socket.on("disruption", async (payload) => {
       console.log("📢 GOT DISRUPTION:", payload);
 
       startDisruption({
@@ -348,18 +348,15 @@ export default function VirtualClassroomCore({ config, sessionId }) {
         (s) => s.id === payload.studentId
       );
 
-      const gender =
-        student?.gender === "F"
-          ? "F"
-          : student?.gender === "M"
-          ? "M"
-          : "neutral";
-
-      speakStudentUtterance({
-        studentId: payload.studentId,
-        gender,
-        text: payload.utteranceText,
-      });
+      // 🔊 כאן הקריאה בפועל ל־TTS בשרת
+      if (student) {
+        playTTSAudio({
+          text: payload.utteranceText,
+          gender: student.gender || "M",
+          studentId: payload.studentId,
+          behaviorProfile: student.behaviorProfile,
+        });
+      }
 
       if (bubbleTimers.current.has(payload.studentId)) {
         clearTimeout(bubbleTimers.current.get(payload.studentId));
@@ -395,7 +392,6 @@ export default function VirtualClassroomCore({ config, sessionId }) {
 
     const students = useClassroomStore.getState().students;
 
-    // 👇 עכשיו שולחים גם topic כמו שתיקנת:
     socketRef.current.emit("lesson:students", {
       students,
       lessonTopic: config?.lessonTopic || "",
@@ -413,14 +409,14 @@ export default function VirtualClassroomCore({ config, sessionId }) {
     }
 
     const durationSec = (config?.duration ?? 5) * 60;
-    socketRef.current.emit("lesson:start", { durationSec , sessionId });
+    socketRef.current.emit("lesson:start", { durationSec, sessionId });
 
     setTimeLeft(durationSec);
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
-          socketRef.current?.emit("lesson:stop"  , {sessionId} );
+          socketRef.current?.emit("lesson:stop", { sessionId });
           clearInterval(timerRef.current);
           setStarted(false);
           return 0;
@@ -432,11 +428,9 @@ export default function VirtualClassroomCore({ config, sessionId }) {
     setStarted(true);
   };
 
-
-
   // ===== עצירת סימולציה =====
   const handleStop = () => {
-    socketRef.current?.emit("lesson:stop"  , {sessionId});
+    socketRef.current?.emit("lesson:stop", { sessionId });
     clearInterval(timerRef.current);
     setStarted(false);
     setIsRecording(false);
@@ -456,6 +450,8 @@ export default function VirtualClassroomCore({ config, sessionId }) {
             START
           </button>
 
+          {/* כפתור בדיקה ישן – עדיין משתמש ב־speechSynthesis של הדפדפן
+              אם תרצי – אפשר אחר כך להפוך גם אותו ל־playTTSAudio */}
           <button
             onClick={() => {
               if (!("speechSynthesis" in window)) {
