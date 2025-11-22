@@ -314,34 +314,36 @@ export default function VirtualClassroomCore({ config, sessionId }) {
     const socket = createSocket(sessionId);
     socketRef.current = socket;
 
-    socket.on("disruption", async (payload) => {
-      console.log("📢 GOT DISRUPTION:", payload);
+  socket.on("disruption", async (payload) => {
+  console.log("📢 GOT DISRUPTION:", payload);
 
-      startDisruption({
-        id: payload.disruptionId,
-        sessionId,
-        studentId: payload.studentId,
-        studentName: payload.studentName,
-        type: payload.type,
-        label: payload.label || payload.utteranceText,
-        utteranceText: payload.utteranceText,
-        ts: payload.ts,
-      });
+  startDisruption({
+    id: payload.disruptionId,
+    sessionId,
+    studentId: payload.studentId,
+    studentName: payload.studentName,
+    type: payload.type,
+    label: payload.label || payload.utteranceText,
+    utteranceText: payload.utteranceText,
+    ts: payload.ts,
+    eventId: payload.eventId || null,     // 👈 חדש
+  });
 
-      setSpeakingMap((prev) => ({
-        ...prev,
-        [payload.studentId]: payload.utteranceText,
-      }));
+  setSpeakingMap((prev) => ({
+    ...prev,
+    [payload.studentId]: payload.utteranceText,
+  }));
 
-      setLastDisruption({
-        disruptionId: payload.disruptionId,
-        studentId: payload.studentId,
-        studentName: payload.studentName,
-        type: payload.type,
-        label: payload.label,
-        utteranceText: payload.utteranceText,
-        ts: payload.ts,
-      });
+  setLastDisruption({
+    disruptionId: payload.disruptionId,
+    studentId: payload.studentId,
+    studentName: payload.studentName,
+    type: payload.type,
+    label: payload.label,
+    utteranceText: payload.utteranceText,
+    ts: payload.ts,
+    eventId: payload.eventId || null,     // 👈 חדש
+  });
 
       const state = useClassroomStore.getState();
       const student = state.students.find(

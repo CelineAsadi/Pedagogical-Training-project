@@ -1,4 +1,3 @@
-// server/src/services/gptDisruption.service.js
 const OpenAI = require("openai");
 
 const client = new OpenAI({
@@ -20,6 +19,7 @@ const disruptionSystemPrompt = `
 בכל קריאה אליך מקבלים צילום מצב עדכני של כיתה וירטואלית בפורמט JSON, שמכיל בין השאר:
 - sessionMeta: מידע כללי על השיעור (sessionId, elapsedSeconds, timeSinceLastDisruptionSeconds)
 - classConfig: className, lessonTopic, durationMinutes
+- teacherProfile: מידע על המורה/משתמש (gender, classLevel, teachExpRange)
 - students: רשימת תלמידים (id, name, gender, behaviorProfile, seatId)
 - seating: מידע על מיקום הכיסאות בכיתה
 - recentEvents: רצף האירועים האחרונים בשיעור (דיבור מורה, הפרעות תלמידים, תגובות מורה)
@@ -58,33 +58,14 @@ const disruptionSystemPrompt = `
   אתה רשאי ליצור משפטים חדשים, כל עוד הם תואמים לפרופיל, לרמת הגיל ולנושא השיעור:
 
   - attentive (קשוב): שאלות ענייניות, בלבול עדין, בקשת הבהרה.
-    דוגמה: "אפשר להסביר שוב את החלק של...?"
-
   - talker (מדבר): מדבר עם חבר, זורק הערות, מסיח דעת.
-    דוגמה: "אחי, ראית אתמול את המשחק?"
-
   - defiant (מתנגד): חוסר שיתוף פעולה, התנגדות.
-    דוגמה: "לא עושה את זה, לא בא לי."
-
   - sensitive (רגיש): נעלב, מרגיש מותקף.
-    דוגמה: "למה את תמיד צועקת דווקא עליי?"
-
   - withdrawn (מסתגר): קצר, שקט, נמנע.
-    דוגמה: "לא רוצה לענות."
-
   - conflicts (קונפליקטים): ויכוחים עם תלמידים אחרים.
-    דוגמה: "תפסיק לקחת לי את הדברים!"
-
   - sarcastic (סרקסטי): הערות עוקצניות/ציניות.
-    דוגמה: "כן, ברור שזה יעזור לי בחיים..."
-
   - hyperactive (היפראקטיבי): תזזיתי, מתקשה לשבת.
-    דוגמה: "אני חייב לזוז רגע, זה משעמם."
-
   - neutral (נייטרלי): תגובות רגילות/פשוטות.
-
-- הדוגמאות רק להמחשה. מותר ורצוי לייצר מגוון משפטים חדשים וריאליסטיים.
-- אסור לחזור על אותו משפט פחות או יותר לאותו תלמיד (להימנע מחזרה).
 
 שפת ההפרעות:
 - משפטים קצרים בעברית טבעית (עד 12–15 מילים).
@@ -152,6 +133,55 @@ const disruptionSystemPrompt = `
     }
   ]
 }
+  התנהגות דיאלוגית בין מורה לתלמידים:
+- כאשר אתה רואה ברצף:
+  - אירוע של תלמיד: {"type": "student_disruption", ...}
+  - אחריו אירוע של מורה: {"type": "teacher_response", "studentId": אותו studentId}
+  זה אומר שהמורה ענתה לתלמיד הספציפי הזה.
+
+- במקרים כאלה מותר ואף מומלץ:
+  - לתת לאותו תלמיד להגיב שוב לתשובת המורה,
+    במיוחד אם המורה שאלה שאלה פתוחה, ביקשה הסבר, או דיברה בטון נוקשה.
+  - להמשיך את הדיאלוג בצורה ריאליסטית: התלמיד יכול להירגע, להסכים, להישאר מתוסכל, או להסלים בהתאם לפרופיל שלו.
+
+שימוש במאפייני הקול של המורה (voiceFeatures + teacherStressLevelEstimate):
+- אם המורה נשמעת רגועה ("calm"/"soft" ו-volume נמוך):
+  - תלמיד רגיש (sensitive) יכול להירגע או לשתף פעולה.
+  - תלמיד מתנגד (defiant) יכול עדיין לבדוק גבולות, אבל בעוצמה פחותה.
+- אם המורה נשמעת כועסת או לחוצה ("angry","stressed","loud" או teacherStressLevelEstimate גבוה):
+  - תלמידים רגישים (sensitive, withdrawn) יכולים להיפגע, להסתגר או להגיב ברגש.
+  - תלמידים מתנגדים/קונפליקט (defiant, conflicts, sarcastic) יכולים להסלים, לענות בציניות, או להתנגד עוד יותר.
+
+קישור לתוכן:
+- כאשר אתה מייצר הפרעה/תגובה חדשה עבור תלמיד שכבר דיבר קודם:
+  - השתדל שהמשפט החדש יתייחס למה שהמורה אמרה לו קודם (מבחינת תוכן, לא ציטוט מילולי),
+    או למה שהוא עצמו אמר רגע לפני.
+    שימוש בפרופיל המורה (teacherProfile) כדי לקבוע רמת וקצב ההפרעות:
+
+- teacherProfile.teachExpRange:
+  - "0-1" → מורה בתחילת הדרך:
+    - התחל בהפרעות בעוצמה נמוכה-בינונית בלבד (severity 1–2).
+    - הימנע מ-"multi" בתחילת השיעור, במיוחד בדקות הראשונות.
+    - תן יותר "שקט" בין ההפרעות, במיוחד אם יש סימנים ללחץ (teacherStressLevelEstimate גבוה).
+  - "2-5" → מורה עם ניסיון בינוני:
+    - אפשר לשלב הפרעות בעוצמה 2–3.
+    - מותר מדי פעם לתת "multi", אבל לא ברצף צפוף.
+  - "5+" → מורה מנוסה מאוד:
+    - אפשר לשלב גם הפרעות בעוצמה גבוהה (4–5) מדי פעם.
+    - מותר ליצור multi במצבים מתאימים, במיוחד כאשר נושא השיעור יוצר דיון טבעי.
+
+- teacherProfile.classLevel:
+  - מספר כיתה (3–6) – משקף בערך את גיל התלמידים.
+  - בכיתות נמוכות (3–4) ההפרעות צריכות להיות פשוטות יותר, ילדותיות, פחות ציניות.
+  - בכיתות גבוהות (5–6) אפשר לשלב הומור, ציניות קלה, וויכוחים סביב צדק / "זה לא הוגן".
+
+- שילוב עם lessonTopic:
+  - קח בחשבון את lessonTopic כדי לחבר את ההפרעות לתוכן השיעור.
+  - לדוגמה: אם הנושא מתמטי → שאלות "לא הבנתי את החלק של...", "למה בכלל צריך לדעת את זה?" וכו'.
+  - אם הנושא חברתי/אזרחי → יותר דיונים על צדק, הוגנות, יחסים בין תלמידים.
+
+אם אין teacherProfile (null) – הנח ברירת מחדל של מורה עם ניסיון בינוני ("2-5") והתאם את רמת ההפרעות בצורה מתונה.
+
 `.trim();
 
 /**
@@ -161,102 +191,16 @@ const disruptionSystemPrompt = `
  *
  * @returns {Promise<{globalDecision:string,reason:string,disruptions:Array}>}
  */
-// async function decideDisruptions(classContextSnapshot) {
-//   const userPrompt = `
-// זהו צילום מצב עדכני של הכיתה הוירטואלית בפורמט JSON.
-// נא קרא בעיון את כל המידע, ותחליט האם ליצור עכשיו הפרעות חדשות, ואם כן – עבור אילו תלמידים ואיזה משפט הם אומרים.
-// שים לב: recentEvents מסודר מהישן לחדש (מהעבר להווה).
-
-// הנתונים:
-
-// ${JSON.stringify(classContextSnapshot, null, 2)}
-// `.trim();
-
-//   const response = await client.responses.create({
-//     model: "gpt-4.1-mini", // אפשר להחליף לפי מה שיש לך בחשבון
-//     input: [
-//       { role: "system", content: disruptionSystemPrompt },
-//       { role: "user", content: userPrompt },
-//     ],
-//     max_output_tokens: 500,
-//   });
-
-//   // התאמה למבנה של responses API
-//   const firstOutput = response.output?.[0]?.content?.[0];
-//   let raw = "";
-
-//   if (!firstOutput) {
-//     console.error("❌ GPT disruption: no output content");
-//     return {
-//       globalDecision: "none",
-//       reason: "no_output",
-//       disruptions: [],
-//     };
-//   }
-
-//   // יכול להיות firstOutput.text או firstOutput.text.value
-//   if (typeof firstOutput.text === "string") {
-//     raw = firstOutput.text;
-//   } else if (firstOutput.text && typeof firstOutput.text.value === "string") {
-//     raw = firstOutput.text.value;
-//   } else {
-//     raw = String(firstOutput.text || "");
-//   }
-
-//   let cleaned = raw.trim();
-
-//   // ניקוי מקרים של ```json ... ```
-//   if (cleaned.startsWith("```")) {
-//     cleaned = cleaned.replace(/^```(json)?/i, "");
-//     cleaned = cleaned.replace(/```$/, "");
-//     cleaned = cleaned.trim();
-//   }
-
-//   let parsed;
-//   try {
-//     parsed = JSON.parse(cleaned);
-//   } catch (e) {
-//     console.error("❌ GPT disruption JSON parse error:", e);
-//     console.error("RAW:", cleaned);
-//     return {
-//       globalDecision: "none",
-//       reason: "parse_error",
-//       disruptions: [],
-//     };
-//   }
-
-//   // נוודא שתמיד יש שדות בסיסיים
-//   if (!parsed || typeof parsed !== "object") {
-//     return {
-//       globalDecision: "none",
-//       reason: "bad_object",
-//       disruptions: [],
-//     };
-//   }
-
-//   if (!Array.isArray(parsed.disruptions)) {
-//     parsed.disruptions = [];
-//   }
-
-//   if (!parsed.globalDecision) {
-//     parsed.globalDecision =
-//       parsed.disruptions.length === 0
-//         ? "none"
-//         : parsed.disruptions.length === 1
-//         ? "single"
-//         : "multi";
-//   }
-
-//   if (!parsed.reason) {
-//     parsed.reason = "no_reason_provided";
-//   }
-
-//   return parsed;
-// }
-
-
 async function decideDisruptions(classContextSnapshot) {
-  const userPrompt = `...${JSON.stringify(classContextSnapshot, null, 2)}`;
+  const userPrompt = `
+זהו צילום מצב עדכני של הכיתה הוירטואלית בפורמט JSON.
+נא קרא בעיון את כל המידע, ותחליט האם ליצור עכשיו הפרעות חדשות, ואם כן – עבור אילו תלמידים ואיזה משפט הם אומרים.
+שים לב: recentEvents מסודר מהישן לחדש (מהעבר להווה).
+
+הנתונים:
+
+${JSON.stringify(classContextSnapshot, null, 2)}
+`.trim();
 
   try {
     const response = await client.responses.create({
@@ -268,12 +212,78 @@ async function decideDisruptions(classContextSnapshot) {
       max_output_tokens: 500,
     });
 
-    // ... כל הפענוח כמו שיש לך היום ...
+    const firstOutput = response.output?.[0]?.content?.[0];
+    if (!firstOutput) {
+      console.error("❌ GPT disruption: no output content");
+      return {
+        globalDecision: "none",
+        reason: "no_output",
+        disruptions: [],
+      };
+    }
+
+    let raw = "";
+    if (typeof firstOutput.text === "string") {
+      raw = firstOutput.text;
+    } else if (
+      firstOutput.text &&
+      typeof firstOutput.text.value === "string"
+    ) {
+      raw = firstOutput.text.value;
+    } else {
+      raw = String(firstOutput.text || "");
+    }
+
+    let cleaned = raw.trim();
+
+    // ניקוי ```json ... ```
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(json)?/i, "");
+      cleaned = cleaned.replace(/```$/, "");
+      cleaned = cleaned.trim();
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch (e) {
+      console.error("❌ GPT disruption JSON parse error:", e);
+      console.error("RAW:", cleaned);
+      return {
+        globalDecision: "none",
+        reason: "parse_error",
+        disruptions: [],
+      };
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      return {
+        globalDecision: "none",
+        reason: "bad_object",
+        disruptions: [],
+      };
+    }
+
+    if (!Array.isArray(parsed.disruptions)) {
+      parsed.disruptions = [];
+    }
+
+    if (!parsed.globalDecision) {
+      parsed.globalDecision =
+        parsed.disruptions.length === 0
+          ? "none"
+          : parsed.disruptions.length === 1
+          ? "single"
+          : "multi";
+    }
+
+    if (!parsed.reason) {
+      parsed.reason = "no_reason_provided";
+    }
+
     return parsed;
   } catch (err) {
     console.error("❌ GPT disruption error:", err);
-
-    // במיוחד אם זה rate_limit_exceeded
     return {
       globalDecision: "none",
       reason:
@@ -287,8 +297,7 @@ async function decideDisruptions(classContextSnapshot) {
 
 /**
  * 🔙 פונקציית helper ישנה – מייצרת משפט אחד לתלמיד בודד
- * עדיין אפשר להשתמש בה במקומות שבהם צריך רק משפט הפרעה אחד,
- * אבל לוגיקת הניהול החכמה היא דרך decideDisruptions.
+ * עדיין אפשר להשתמש בה אם תרצי רק "משפט אחד" בלי לוגיקה חכמה.
  */
 async function generateDisruptionUtterance({ student, lessonTopic, label }) {
   const behavior = student.behaviorProfile || "neutral";
@@ -322,7 +331,7 @@ async function generateDisruptionUtterance({ student, lessonTopic, label }) {
 `.trim();
 
   const response = await client.responses.create({
-    model: "gpt-4o-mini", // או מודל אחר שזמין לך
+    model: "gpt-4o-mini",
     input: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
@@ -344,5 +353,5 @@ async function generateDisruptionUtterance({ student, lessonTopic, label }) {
 
 module.exports = {
   decideDisruptions,
-  generateDisruptionUtterance, // לשימוש לאחור אם צריך
+  generateDisruptionUtterance,
 };

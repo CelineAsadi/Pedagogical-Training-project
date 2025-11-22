@@ -4,7 +4,7 @@ const Session = require("../models/Session");
 const LessonSettings = require("../models/LessonSettings");
 const Event = require("../models/Event");
 const Response = require("../models/Response");
-
+const User = require("../models/user.model");
 // 👇 משתמשים במנוע ההפרעות החדש
 const { decideDisruptions } = require("../services/gptDisruption.service");
 
@@ -23,14 +23,30 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
     .populate("lessonId")
     .lean();
 
-  if (!session) {
-    throw new Error(`Session ${sessionId} not found`);
+ if (!session) {
+  throw new Error(`Session ${sessionId} not found`);
+}
+
+if (!lesson) {
+  throw new Error(`LessonSettings not found for session ${sessionId}`);
+}
+ // ---------- פרופיל המורה (המשתמש) ----------
+  const teacherId = session.userId || null; // אצלך השדה נקרא userId בסכמה
+
+  let teacherProfile = null;
+  if (teacherId) {
+    const teacher = await User.findById(teacherId).lean();
+    if (teacher) {
+      teacherProfile = {
+        id: String(teacher._id),
+        fullName: `${teacher.FName} ${teacher.LName}`,
+        gender: teacher.Gender,          // "Female" | "Male"
+        classLevel: teacher.Classlevel,  // 3–6 → רמת כיתה
+        teachExpRange: teacher.TeachExp, // "0-1" | "2-5" | "5+"
+      };
+    }
   }
 
-  const lesson = session.lessonId;
-  if (!lesson) {
-    throw new Error(`LessonSettings not found for session ${sessionId}`);
-  }
 
   // כל האירועים של תלמידים (שאלות / הפרעות)
   const events = await Event.find({ sessionId }).sort({ createdAt: 1 }).lean();
@@ -123,32 +139,37 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
   const recentTimeline = timeline.slice(-MAX_RECENT);
 
   const recentEvents = recentTimeline.map((item) => {
-    if (item.kind === "student_event") {
-      return {
-        type: "student_disruption", // גם שאלה וגם הפרעה – מודל יודע לפי meta.eventType
-        timestamp: item.at,
-        studentId: item.studentId,
-        text: item.content,
-        meta: {
-          eventType: item.eventType, // "question" | "disruption"
-          status: item.status,
-        },
-      };
-    }
-
-    // teacher_turn
+  if (item.kind === "student_event") {
     return {
-      type: item.studentId ? "teacher_response" : "teacher_speech",
+      type: "student_disruption",
       timestamp: item.at,
-      studentId: item.studentId || null,
-      text: item.teacherText,
+      studentId: item.studentId,
+      text: item.content,
       meta: {
-        responseTimeInSeconds: item.responseTimeInSeconds,
-        emotion: item.emotion,
-        isGeneral: item.isGeneral,
-        voiceFeatures: item.voiceFeatures || null, // ⭐ כאן עובר volume/pitch/tone
+        eventType: item.eventType, // "question" | "disruption"
+        status: item.status,
+        eventId: item._id || null,      // 👈 אם תרצי בעתיד
       },
     };
+  }
+
+  
+    // teacher_turn
+   return {
+  type: item.studentId ? "teacher_response" : "teacher_speech",
+  timestamp: item.at,
+  studentId: item.studentId || null, // למי המורה כיוונה
+  text: item.teacherText,
+  meta: {
+    responseTimeInSeconds: item.responseTimeInSeconds,
+    emotion: item.emotion,
+    isGeneral: item.isGeneral,
+    voiceFeatures: item.voiceFeatures || null, // { volume, pitch, tone }
+    replyToEventId: item.eventId || null,      // 👈 קישור להפרעה שהמורה ענתה עליה
+    targetStudentId: item.studentId || null,   // 👈 חיזוק: זה התלמיד שקיבל את התגובה
+  },
+};
+
   });
 
   // ------------ חישוב teacherStressLevelEstimate פשוט לפי tone ------------
@@ -175,7 +196,7 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
     teacherStressLevelEstimate = sum / toneScores.length; // ערך בין 0–1
   }
 
-  const snapshot = {
+    const snapshot = {
     sessionMeta: {
       sessionId: String(session._id),
       elapsedSeconds,
@@ -187,12 +208,13 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
       durationMinutes: lesson.duration,
       classSize: lesson.classSize,
     },
+    teacherProfile, // 👈 חדש – יכול להיות גם null אם לא נמצא
     students,
     seating,
     recentEvents,
     loadIndicators: {
-      teacherStressLevelEstimate, // ⭐ עכשיו באמת מחושב לפי טון המורה
-      classNoiseLevelEstimate: null, // אפשר להוסיף בהמשך לפי כמות הפרעות
+      teacherStressLevelEstimate,
+      classNoiseLevelEstimate: null,
     },
   };
 
@@ -233,16 +255,19 @@ async function decideNextDisruptions(sessionId, runtimeState = {}) {
     ? gptResult.disruptions
     : [];
 
-  // 3) ממפים ל-actions שהמנוע שלנו מבין
-  const actions = disruptions.map((d) => ({
-    studentId: d.studentId,
-    behavior: d.behaviorProfile || "neutral",
-    label: d.label || "תלמיד",
-    utteranceText: d.utteranceText || "",
-    // אפשר להוסיף בעתיד delay לפי severity וכו'
-    delayMs: 0,
-  }));
+ // 3) ממפים ל-actions שהמנוע שלנו מבין
+  const actions = disruptions.map((d) => {
+    const eventType = d.type === "question" ? "question" : "disruption";
 
+    return {
+      studentId: d.studentId,
+      behavior: d.behaviorProfile || "neutral",
+      label: d.label || "תלמיד",
+      utteranceText: d.utteranceText || "",
+      eventType,          // 👈 חדש – יעבור לסוקט
+      delayMs: 0,
+    };
+  });
   // 4) החלטה כל כמה זמן לקרוא שוב ל-GPT
   let nextCheckInSeconds = 15;
   if (gptResult.globalDecision === "none") {

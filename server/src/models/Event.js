@@ -26,11 +26,17 @@ const eventSchema = new mongoose.Schema(
       enum: ["open", "answered"],
       default: "open",
     },
+    // 👇 חדש – מזהה ה־disruption מהסוקט/פרונט
+    disruptionId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
   },
   { timestamps: true }
 );
 
-// אינדקס לפי sessionId כדי שיהיה קל לשלוף לפי שיעור
-eventSchema.index({ sessionId: 1 });
+// 👇 אינדקס ייחודי: באותו session אי אפשר שתי הפרעות עם אותו disruptionId
+eventSchema.index({ sessionId: 1, disruptionId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("Event", eventSchema);

@@ -2,6 +2,7 @@
 
 const { Server } = require("socket.io");
 const { decideNextDisruptions } = require("../logic/gptClassEngine");
+const EventModel = require("../models/Event");
 
 // ננהל מצב זיכרון לכל sessionId
 // {
@@ -154,29 +155,50 @@ async function runDecisionCycle(io, sessionId) {
       );
     }
 
-    // שידור ההפרעות לפי delay
-    for (const action of actions) {
-      const ts = now + (action.delayMs || 0);
-      const student =
-        (runtimeState.students || []).find(
-          (s) => s.id === action.studentId
-        ) || null;
+     for (const action of actions) {
+    const ts = now + (action.delayMs || 0);
 
-      const payload = {
-        disruptionId: `${sessionId}-${ts}`,
+    const student =
+      (runtimeState.students || []).find(
+        (s) => s.id === action.studentId
+      ) || null;
+
+    // 🔹 קודם שומרים את האירוע במונגו
+    let eventDoc = null;
+    try {
+      eventDoc = await EventModel.create({
+        sessionId,                                   // 🔗 ה-Session האמיתי
         studentId: action.studentId || (student && student.id) || null,
         studentName: student?.name || "תלמיד",
-        type: action.behavior || "neutral",
-        label: action.label || "תלמיד",
-        utteranceText: action.utteranceText,
-        ts,
-      };
-
-      setTimeout(() => {
-        console.log("📢 Emitting disruption:", payload);
-        io.to(sessionId).emit("disruption", payload);
-      }, action.delayMs || 0);
+        eventType: action.eventType || "disruption", // "question" | "disruption"
+        content: action.utteranceText,
+        timestamp: new Date(ts),                     // מתי ההפרעה "קרתה"
+        status: "open",                              // עדיין לא נענתה
+      });
+    } catch (err) {
+      console.error(
+        "[lessonSocket] Failed to save Event for disruption:",
+        err
+      );
     }
+
+    const payload = {
+      disruptionId: `${sessionId}-${ts}`,
+      studentId: action.studentId || (student && student.id) || null,
+      studentName: student?.name || "תלמיד",
+      type: action.behavior || "neutral",
+      label: action.label || "תלמיד",
+      utteranceText: action.utteranceText,
+      ts,
+      eventId: eventDoc ? eventDoc._id.toString() : null, // 👈 חדש
+    };
+
+    setTimeout(() => {
+      console.log("📢 Emitting disruption:", payload);
+      io.to(sessionId).emit("disruption", payload);
+    }, action.delayMs || 0);
+  }
+
 
     // קובעים סיבוב הבא
     const delayMs = (nextCheckInSeconds || 15) * 1000;

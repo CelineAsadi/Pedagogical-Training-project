@@ -1,26 +1,14 @@
 // server/src/controllers/feedback.controller.js
 
-const EventModel = require("../models/Event");
 const ResponseModel = require("../models/Response");
 const FeedbackModel = require("../models/Feedback");
 const { analyzeTeacherResponse } = require("../services/gptFeedback.service");
+const {
+  createEventFromDisruption,
+} = require("./event.controller");
 
-function inferEventType(disruption) {
-  if (!disruption) return "disruption";
 
-  const t = disruption.type || "";
-  const text = disruption.utteranceText || "";
 
-  if (
-    t === "attentive" ||
-    t === "neutral" ||
-    (text.includes("?") && t !== "defiant")
-  ) {
-    return "question";
-  }
-
-  return "disruption";
-}
 
 // POST /api/feedback/teacher-response
 async function saveTeacherResponse(req, res) {
@@ -49,36 +37,10 @@ async function saveTeacherResponse(req, res) {
           : null,
     };
 
-    let eventDoc = null;
-    let responseTimeInSeconds = null;
+        // ✨ יצירת Event במונגו הועברה ל-event.controller.js
+    const { eventDoc, responseTimeInSeconds } =
+      await createEventFromDisruption({ sessionId, disruption });
 
-    if (
-      disruption &&
-      disruption.studentId &&
-      typeof disruption.utteranceText === "string" &&
-      disruption.utteranceText.trim() !== ""
-    ) {
-      const eventType = inferEventType(disruption);
-
-      const eventData = {
-        sessionId, // 🔗 ObjectId של Session (מומר אוטומטית)
-        studentId: disruption.studentId,
-        studentName: disruption.studentName || "",
-        eventType,
-        content: disruption.utteranceText,
-        timestamp: disruption.ts ? new Date(disruption.ts) : new Date(),
-        status: "open",
-      };
-
-      eventDoc = await EventModel.create(eventData);
-
-      if (disruption.ts) {
-        const diffMs = Date.now() - disruption.ts;
-        if (diffMs >= 0) {
-          responseTimeInSeconds = Math.round(diffMs / 1000);
-        }
-      }
-    }
 
     const responseDoc = await ResponseModel.create({
       sessionId, // 🔗 Session אמיתי

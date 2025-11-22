@@ -9,7 +9,7 @@ const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const cron = require("node-cron");
 const axios = require("axios");
-const { Server } = require("socket.io");
+//const { Server } = require("socket.io");
 const ttsRoutes = require("./routes/tts.route");
 const ConnectDB = require("./lib/db");
 const authRoutes = require("./routes/auth.route");
@@ -18,6 +18,7 @@ const supportRoutes = require("./routes/support.route");
 const { generateDisruptionUtterance } = require("./services/gptDisruption.service");
 const feedbackRoutes = require("./routes/feedback.route");
 const sessionRoutes = require("./routes/session.routes");
+const { initLessonSocket } = require("./socket/lessonSocket");
 
 
 dotenv.config();
@@ -27,6 +28,8 @@ dotenv.config();
    ========================= */
 const app = express();
 const server = http.createServer(app);
+// ✅ לחבר מנוע ההפרעות החכם (GPT) לסוקט
+initLessonSocket(server);
 
 /* =========================
    🗄️ MongoDB Connection
@@ -75,174 +78,6 @@ if (process.env.NODE_ENV !== "production") {
    🔁 Socket.io Setup
    ========================= */
    
-const io = new Server(server, {
-  cors: {
-    origin: [
-      "http://localhost:3000",
-      // "https://pedagogical-training-project-client.vercel.app"
-    ],
-    credentials: true,
-  },
-});
-
-/* ==================================================
-   🔥 מנוע הפרעות – מצב בזיכרון לכל sessionId
-   lessonState: Map<sessionId, { students: [], timer: NodeJS.Timeout | null }>
-   ================================================== */
-const lessonState = new Map();
-
-/** 🛑 עצירת שיעור + ניקוי טיימר עבור session */
-function stopLessonForSession(io, sessionId) {
-  const state = lessonState.get(sessionId);
-  if (!state) return;
-
-  if (state.timer) {
-    clearInterval(state.timer);
-    state.timer = null;
-  }
-
-  lessonState.set(sessionId, state);
-  console.log(`🛑 Lesson stopped for session ${sessionId}`);
-}
-
-/** 🧠 בניית הפרעה בהתאם לפרופיל ההתנהגות של התלמיד */
-function buildDisruptionForStudent(student) {
-  const profile = (student.behaviorProfile || "").toLowerCase();
-
-  let type = "neutral";
-  let label = "תלמיד";
-
-  if (profile === "attentive") {
-    type = "attentive";
-    label = "קשוב";
-  } else if (profile === "talker") {
-    type = "talker";
-    label = "מדבר";
-  } else if (profile === "defiant") {
-    type = "defiant";
-    label = "מתנגד";
-  } else if (profile === "sensitive") {
-    type = "sensitive";
-    label = "רגיש";
-  } else if (profile === "withdrawn") {
-    type = "withdrawn";
-    label = "מסתגר";
-  } else if (profile === "conflicts") {
-    type = "conflicts";
-    label = "קונפליקטים";
-  } else if (profile === "sarcastic") {
-    type = "sarcastic";
-    label = "סרקסטי";
-  } else if (profile === "hyperactive") {
-    type = "hyperactive";
-    label = "היפראקטיבי";
-  }
-
-  return { type, label };
-}
-
-
-/** ▶️ הפעלת שיעור + התחלת יצירת הפרעות רנדומליות */
-function startLessonForSession(io, sessionId, durationSec = 300) {
-  let state = lessonState.get(sessionId) || { students: [], timer: null };
-
-  if (state.timer) {
-    clearInterval(state.timer);
-  }
-
-  console.log(`▶️ Starting lesson for session ${sessionId} (duration ${durationSec}s)`);
-
-  const intervalMs = 15000;
-
-  const timer = setInterval(async () => {
-  const current = lessonState.get(sessionId);
-  if (!current || !current.students || current.students.length === 0) {
-    console.log(`⚠️ No students for session ${sessionId}, skipping disruption`);
-    return;
-  }
-
-  const students = current.students;
-  const randIndex = Math.floor(Math.random() * students.length);
-  const student = students[randIndex];
-
-  const d = buildDisruptionForStudent(student);
-
-  let utteranceText;
-  try {
-    // 🧠 כאן GPT מייצר את כל הטקסט – אין יותר ברירת מחדל ידנית
-    utteranceText = await generateDisruptionUtterance({
-      student,
-      lessonTopic: current.lessonTopic,
-      label: d.label,
-    });
-  } catch (err) {
-    console.error("❌ GPT disruption error, skipping this disruption:", err.message);
-    return; // לא משדרים הפרעה בלי GPT
-  }
-
-  const payload = {
-    disruptionId: `${sessionId}-${Date.now()}`,
-    studentId: student.id,
-    studentName: student.name,
-    type: d.type,
-    label: d.label,
-    utteranceText,
-    ts: Date.now(),
-  };
-
-  console.log("📢 Emitting disruption:", payload);
-  io.to(sessionId).emit("disruption", payload);
-}, intervalMs);
-
-
-  state.timer = timer;
-  lessonState.set(sessionId, state);
-
-  setTimeout(() => {
-    stopLessonForSession(io, sessionId);
-  }, durationSec * 1000);
-}
-
-
-/* =========================
-   🎧 Socket.io Event Handlers
-   ========================= */
-io.on("connection", (socket) => {
-  const { sessionId = socket.id } = socket.handshake.query || {};
-  socket.join(sessionId);
-
-  console.log(`🔌 Client connected. sessionId=${sessionId}`);
-
-  // ✅ הקליינט שולח את רשימת התלמידים בתחילת השיעור
-  socket.on("lesson:students", ({ students, lessonTopic }) => {
-  const prev = lessonState.get(sessionId) || {};
-  lessonState.set(sessionId, {
-    ...prev,
-    students: students || [],
-    lessonTopic: lessonTopic || "",
-  });
-  console.log(
-    `👨‍👩‍👧‍👦 Received ${students?.length || 0} students for session ${sessionId}, topic="${lessonTopic}"`
-  );
-});
-
-
-  // ✅ התחלת שיעור → מפעיל מנוע ההפרעות
-  socket.on("lesson:start", ({ durationSec }) => {
-    startLessonForSession(io, sessionId, durationSec || 300);
-  });
-
-  // ✅ עצירת שיעור מהקליינט
-  socket.on("lesson:stop", () => {
-    stopLessonForSession(io, sessionId);
-  });
-
-  // ✅ ניקוי כאשר הלקוח מתנתק
-  socket.on("disconnect", () => {
-    console.log(`🔌 Client disconnected. sessionId=${sessionId}`);
-    stopLessonForSession(io, sessionId);
-  });
-});
 
 /* =========================
    📦 Static Client (Production)
