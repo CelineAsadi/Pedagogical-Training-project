@@ -5,64 +5,60 @@ const LessonSettings = require("../models/LessonSettings");
 const Event = require("../models/Event");
 const Response = require("../models/Response");
 const User = require("../models/user.model");
-// 👇 משתמשים במנוע ההפרעות החדש
 const { decideDisruptions } = require("../services/gptDisruption.service");
 
 /**
- * בונה צילום מצב כיתה (classContextSnapshot) עבור GPT
- * @param {String|ObjectId} sessionId
- * @param {Object} runtimeState - מצב בזמן אמת שנשמר ב-socket
- *   {
- *     students: [{ id, name, behaviorProfile, gender, seatId, seatPosition }],
- *     startedAt: Date,          // תחילת השיעור בצד ה-socket (אופציונלי)
- *     lastDecisionAt: Date|null // מתי בפעם האחרונה קראנו ל-GPT
- *   }
+ * Build classroom snapshot for GPT
  */
 async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
+  // Load Session + Lesson
   const session = await Session.findById(sessionId)
     .populate("lessonId")
     .lean();
 
- if (!session) {
-  throw new Error(`Session ${sessionId} not found`);
-}
+  if (!session) {
+    throw new Error(`Session ${sessionId} not found`);
+  }
 
-if (!lesson) {
-  throw new Error(`LessonSettings not found for session ${sessionId}`);
-}
- // ---------- פרופיל המורה (המשתמש) ----------
-  const teacherId = session.userId || null; // אצלך השדה נקרא userId בסכמה
+  // Lesson is inside session.lessonId
+  const lesson = session.lessonId;
+  if (!lesson) {
+    throw new Error(`LessonSettings not found for session ${sessionId}`);
+  }
 
+  // ---------- Teacher Profile ----------
+  const teacherId = session.userId || null;
   let teacherProfile = null;
+
   if (teacherId) {
     const teacher = await User.findById(teacherId).lean();
     if (teacher) {
       teacherProfile = {
         id: String(teacher._id),
         fullName: `${teacher.FName} ${teacher.LName}`,
-        gender: teacher.Gender,          // "Female" | "Male"
-        classLevel: teacher.Classlevel,  // 3–6 → רמת כיתה
-        teachExpRange: teacher.TeachExp, // "0-1" | "2-5" | "5+"
+        gender: teacher.Gender,
+        classLevel: teacher.Classlevel,
+        teachExpRange: teacher.TeachExp,
       };
     }
   }
 
+  // ---------- Events ----------
+  const events = await Event.find({ sessionId })
+    .sort({ createdAt: 1 })
+    .lean();
 
-  // כל האירועים של תלמידים (שאלות / הפרעות)
-  const events = await Event.find({ sessionId }).sort({ createdAt: 1 }).lean();
-
-  // כל תגובות המורה (כולל "כלליות")
   const responses = await Response.find({ sessionId })
     .sort({ createdAt: 1 })
     .lean();
 
-  // --- בניית טיימליין פנימי ---
+  // ---------- Timeline ----------
   const timeline = [];
 
   for (const ev of events) {
     timeline.push({
       kind: "student_event",
-      eventType: ev.eventType, // "question" | "disruption"
+      eventType: ev.eventType,
       studentId: ev.studentId,
       studentName: ev.studentName,
       content: ev.content,
@@ -74,45 +70,44 @@ if (!lesson) {
   for (const resp of responses) {
     timeline.push({
       kind: "teacher_turn",
-      studentId: resp.studentId || null,
       eventId: resp.eventId || null,
+      studentId: resp.studentId || null,
       teacherText: resp.teacherText,
       responseTimeInSeconds: resp.responseTimeInSeconds,
       emotion: resp.emotion || null,
       isGeneral: resp.isGeneral || false,
-      voiceFeatures: resp.voiceFeatures || null, // ⭐ כולל volume, pitch, tone
+      voiceFeatures: resp.voiceFeatures || null,
       at: resp.createdAt,
     });
   }
 
-  // מיון הטיימליין לפי זמן
   timeline.sort((a, b) => new Date(a.at) - new Date(b.at));
 
-  // ------------ חישובי זמנים ל-sessionMeta ------------
+  // ---------- Time calculations ----------
   const now = new Date();
   const startedAt = session.startTime || runtimeState.startedAt || now;
+
   const elapsedSeconds = Math.max(
     0,
-    Math.floor((now.getTime() - new Date(startedAt).getTime()) / 1000)
+    Math.floor((now - new Date(startedAt)) / 1000)
   );
 
   let lastDisruptionAt = null;
   for (let i = timeline.length - 1; i >= 0; i--) {
-    const item = timeline[i];
-    if (item.kind === "student_event" && item.eventType === "disruption") {
-      lastDisruptionAt = new Date(item.at);
+    if (
+      timeline[i].kind === "student_event" &&
+      timeline[i].eventType === "disruption"
+    ) {
+      lastDisruptionAt = new Date(timeline[i].at);
       break;
     }
   }
 
   const timeSinceLastDisruptionSeconds = lastDisruptionAt
-    ? Math.max(
-        0,
-        Math.floor((now.getTime() - lastDisruptionAt.getTime()) / 1000)
-      )
+    ? Math.max(0, Math.floor((now - lastDisruptionAt) / 1000))
     : null;
 
-  // ------------ בניית students + seating ------------
+  // ---------- Students & seating ----------
   const students = (runtimeState.students || []).map((s) => ({
     id: s.id,
     name: s.name,
@@ -121,82 +116,71 @@ if (!lesson) {
     seatId: s.seatId || null,
   }));
 
-  const seating = [];
-  (runtimeState.students || []).forEach((s) => {
-    if (s.seatId && s.seatPosition) {
-      seating.push({
-        seatId: s.seatId,
-        position: {
-          x: s.seatPosition.x,
-          z: s.seatPosition.z,
-        },
-      });
-    }
-  });
+  const seating = (runtimeState.students || [])
+    .filter((s) => s.seatId && s.seatPosition)
+    .map((s) => ({
+      seatId: s.seatId,
+      position: {
+        x: s.seatPosition.x,
+        z: s.seatPosition.z,
+      },
+    }));
 
-  // ------------ recentEvents לפי הפורמט של הפרומפט ------------
+  // ---------- Recent Events ----------
   const MAX_RECENT = 40;
-  const recentTimeline = timeline.slice(-MAX_RECENT);
+  const recentEvents = timeline.slice(-MAX_RECENT).map((item) => {
+    if (item.kind === "student_event") {
+      return {
+        type: "student_disruption",
+        timestamp: item.at,
+        studentId: item.studentId,
+        text: item.content,
+        meta: {
+          eventType: item.eventType,
+          status: item.status,
+        },
+      };
+    }
 
-  const recentEvents = recentTimeline.map((item) => {
-  if (item.kind === "student_event") {
     return {
-      type: "student_disruption",
+      type: item.studentId ? "teacher_response" : "teacher_speech",
       timestamp: item.at,
-      studentId: item.studentId,
-      text: item.content,
+      studentId: item.studentId || null,
+      text: item.teacherText,
       meta: {
-        eventType: item.eventType, // "question" | "disruption"
-        status: item.status,
-        eventId: item._id || null,      // 👈 אם תרצי בעתיד
+        responseTimeInSeconds: item.responseTimeInSeconds,
+        emotion: item.emotion,
+        isGeneral: item.isGeneral,
+        voiceFeatures: item.voiceFeatures,
+        replyToEventId: item.eventId,
       },
     };
-  }
-
-  
-    // teacher_turn
-   return {
-  type: item.studentId ? "teacher_response" : "teacher_speech",
-  timestamp: item.at,
-  studentId: item.studentId || null, // למי המורה כיוונה
-  text: item.teacherText,
-  meta: {
-    responseTimeInSeconds: item.responseTimeInSeconds,
-    emotion: item.emotion,
-    isGeneral: item.isGeneral,
-    voiceFeatures: item.voiceFeatures || null, // { volume, pitch, tone }
-    replyToEventId: item.eventId || null,      // 👈 קישור להפרעה שהמורה ענתה עליה
-    targetStudentId: item.studentId || null,   // 👈 חיזוק: זה התלמיד שקיבל את התגובה
-  },
-};
-
   });
 
-  // ------------ חישוב teacherStressLevelEstimate פשוט לפי tone ------------
+  // ---------- Stress Level ----------
   let teacherStressLevelEstimate = null;
 
-  const toneScores = [];
-  for (const item of recentTimeline) {
-    if (item.kind !== "teacher_turn" || !item.voiceFeatures) continue;
-    const tone = (item.voiceFeatures.tone || "").toLowerCase();
+  const toneScores = recentEvents
+    .filter((ev) => ev.type === "teacher_response" && ev.meta.voiceFeatures)
+    .map((ev) => {
+      const tone = ev.meta.voiceFeatures.tone?.toLowerCase() || "";
 
-    let score;
-    if (tone === "calm" || tone === "soft") score = 0.2;
-    else if (tone === "neutral") score = 0.4;
-    else if (tone === "firm") score = 0.6;
-    else if (tone === "stressed" || tone === "loud") score = 0.8;
-    else if (tone === "angry") score = 1.0;
-    else score = 0.5; // unknown/other
+      if (tone === "calm" || tone === "soft") return 0.2;
+      if (tone === "neutral") return 0.4;
+      if (tone === "firm") return 0.6;
+      if (tone === "stressed" || tone === "loud") return 0.8;
+      if (tone === "angry") return 1.0;
 
-    toneScores.push(score);
-  }
+      return 0.5;
+    });
 
   if (toneScores.length > 0) {
-    const sum = toneScores.reduce((a, b) => a + b, 0);
-    teacherStressLevelEstimate = sum / toneScores.length; // ערך בין 0–1
+    teacherStressLevelEstimate =
+      toneScores.reduce((a, b) => a + b) / toneScores.length;
   }
 
-    const snapshot = {
+  // ---------- FINAL SNAPSHOT ----------
+  return {
     sessionMeta: {
       sessionId: String(session._id),
       elapsedSeconds,
@@ -208,7 +192,7 @@ if (!lesson) {
       durationMinutes: lesson.duration,
       classSize: lesson.classSize,
     },
-    teacherProfile, // 👈 חדש – יכול להיות גם null אם לא נמצא
+    teacherProfile,
     students,
     seating,
     recentEvents,
@@ -217,72 +201,126 @@ if (!lesson) {
       classNoiseLevelEstimate: null,
     },
   };
-
-  return snapshot;
 }
 
 /**
- * פונקציה ראשית: מחליטה מה לעשות בסיבוב הבא (איזה הפרעות לייצר)
- *
- * @param {String|ObjectId} sessionId
- * @param {Object} runtimeState - אובייקט מצב מה-socket
- *
- * מחזירה:
- * {
- *   actions: [
- *     {
- *       studentId,
- *       behavior,
- *       label,
- *       utteranceText,
- *       delayMs
- *     }
- *   ],
- *   nextCheckInSeconds
- * }
+ * Main decision function
+ */
+/**
+ * 🧠 מחליט מה לעשות בסיבוב הבא של ההפרעות — ללא "הפרעה מאולצת"
+ *     אבל עם לוגיקה שתאפשר להפרעות להתחיל באופן טבעי.
  */
 async function decideNextDisruptions(sessionId, runtimeState = {}) {
-  // 1) בונים צילום מצב שמתאים לפרומפט של decideDisruptions
+
+  // ---------------------------------------------------------------
+  // 1) BUILD SNAPSHOT
+  // ---------------------------------------------------------------
   const snapshot = await buildClassroomSnapshot(sessionId, runtimeState);
+  if (!snapshot) {
+    console.warn("⚠️ Snapshot missing");
+    return { actions: [], nextCheckInSeconds: 8 };
+  }
 
-  // 2) מפעילים GPT
-  const gptResult = await decideDisruptions(snapshot);
+  const elapsed = snapshot?.sessionMeta?.elapsedSeconds || 0;
+  const recentEvents = snapshot?.recentEvents || [];
 
-  // gptResult צפוי להיות:
-  // { globalDecision, reason, disruptions: [ { studentId, behaviorProfile, type, label, utteranceText, ... } ] }
+  const teacherHasSpoken = recentEvents.some(
+    ev => ev.type === "teacher_speech" || ev.type === "teacher_response"
+  );
 
-  const disruptions = Array.isArray(gptResult.disruptions)
+  const lastStudentEvent = [...recentEvents].reverse().find(
+    ev => ev.type === "student_disruption"
+  );
+  const hasAnyDisruptions = Boolean(lastStudentEvent);
+
+  // ---------------------------------------------------------------
+  // 2) NORMALIZE BEHAVIOR PROFILES
+  // ---------------------------------------------------------------
+  const validProfiles = [
+    "attentive", "talker", "defiant", "sensitive",
+    "withdrawn", "conflicts", "sarcastic", "hyperactive", "neutral"
+  ];
+
+  snapshot.students = snapshot.students.map(s => ({
+    ...s,
+    behaviorProfile: validProfiles.includes(s.behaviorProfile)
+      ? s.behaviorProfile
+      : "neutral",
+  }));
+
+  // ---------------------------------------------------------------
+  // 3) GPT DECISION
+  // ---------------------------------------------------------------
+  let gptResult;
+  try {
+    gptResult = await decideDisruptions(snapshot);
+  } catch (err) {
+    console.error("❌ GPT disruption engine error:", err);
+    return { actions: [], nextCheckInSeconds: 10 };
+  }
+
+  let disruptions = Array.isArray(gptResult?.disruptions)
     ? gptResult.disruptions
     : [];
 
- // 3) ממפים ל-actions שהמנוע שלנו מבין
-  const actions = disruptions.map((d) => {
-    const eventType = d.type === "question" ? "question" : "disruption";
+  // ---------------------------------------------------------------
+  // 4) ALLOW DISRUPTIONS EARLY IF CLASS IS SILENT
+  // ---------------------------------------------------------------
+  const allowEarlyDisruptions =
+    (!teacherHasSpoken && !hasAnyDisruptions && elapsed > 5);
 
-    return {
-      studentId: d.studentId,
-      behavior: d.behaviorProfile || "neutral",
-      label: d.label || "תלמיד",
-      utteranceText: d.utteranceText || "",
-      eventType,          // 👈 חדש – יעבור לסוקט
-      delayMs: 0,
-    };
-  });
-  // 4) החלטה כל כמה זמן לקרוא שוב ל-GPT
-  let nextCheckInSeconds = 15;
-  if (gptResult.globalDecision === "none") {
-    nextCheckInSeconds = 12 + Math.floor(Math.random() * 8); // 12–20
-  } else if (gptResult.globalDecision === "single") {
-    nextCheckInSeconds = 10 + Math.floor(Math.random() * 6); // 10–15
-  } else if (gptResult.globalDecision === "multi") {
-    nextCheckInSeconds = 15 + Math.floor(Math.random() * 10); // 15–24
+  const allowDisruptionBoost =
+    (gptResult.globalDecision === "none" && allowEarlyDisruptions);
+
+  if (allowDisruptionBoost && disruptions.length === 0) {
+    const anyStudent = snapshot.students[0];
+    if (anyStudent) {
+      disruptions = [
+        {
+          studentId: anyStudent.id,
+          behaviorProfile: anyStudent.behaviorProfile,
+          type: "disruption",
+          label: "מתלבט",
+          utteranceText: "אממ… לא הבנתי מאיפה להתחיל."
+        }
+      ];
+      console.log("✨ Boosted disruption because class is too quiet.");
+    }
   }
 
-  return {
-    actions,
-    nextCheckInSeconds,
-  };
+  // ---------------------------------------------------------------
+  // 5) MAP TO ACTIONS
+  // ---------------------------------------------------------------
+  const actions = disruptions.map((d, idx) => ({
+    studentId: d.studentId,
+    behavior: d.behaviorProfile || "neutral",
+    label: d.label || "תלמיד",
+    utteranceText: d.utteranceText || "",
+    eventType: d.type === "question" ? "question" : "disruption",
+    delayMs: idx * 350,
+  }));
+
+  // ---------------------------------------------------------------
+  // 6) NEXT CHECK TIME
+  // ---------------------------------------------------------------
+  let nextCheckInSeconds = 6;
+
+  switch (gptResult.globalDecision) {
+    case "none":
+      nextCheckInSeconds = 5 + Math.floor(Math.random() * 3); // 5–7
+      break;
+    case "single":
+      nextCheckInSeconds = 4 + Math.floor(Math.random() * 2); // 4–5
+      break;
+    case "multi":
+      nextCheckInSeconds = 6 + Math.floor(Math.random() * 4); // 6–9
+      break;
+  }
+
+  return { actions, nextCheckInSeconds };
 }
+
+
 
 module.exports = {
   decideNextDisruptions,

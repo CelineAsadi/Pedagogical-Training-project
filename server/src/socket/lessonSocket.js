@@ -4,6 +4,7 @@ const { Server } = require("socket.io");
 const { decideNextDisruptions } = require("../logic/gptClassEngine");
 const EventModel = require("../models/Event");
 
+
 // ננהל מצב זיכרון לכל sessionId
 // {
 //   [sessionId]: {
@@ -21,10 +22,16 @@ const sessionRuntime = new Map();
  * @param {http.Server} httpServer
  */
 function initLessonSocket(httpServer) {
+  console.log("function1", process.env.CLIENT_ORIGIN)
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
-      credentials: true,
+      origin: [
+      "http://localhost:3000",
+      "https://pedagogical-training-project.netlify.app",
+      "https://your-vercel-domain.vercel.app",
+      process.env.CLIENT_ORIGIN,
+    ],
+    credentials: true,
     },
   });
 
