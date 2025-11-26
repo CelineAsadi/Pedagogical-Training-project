@@ -3,6 +3,7 @@ import React, { useMemo, useRef, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import "../style/VirtualClassroomCore.css";
+import { flushSync } from "react-dom";
 
 import { useClassroomStore, ROOM, SNAP, FACE_FRONT } from "../lib/store";
 import { useDragOnFloor, snapVec3, clampToRoom } from "../lib/drag";
@@ -314,67 +315,81 @@ export default function VirtualClassroomCore({ config, sessionId }) {
     const socket = createSocket(sessionId);
     socketRef.current = socket;
 
-  socket.on("disruption", async (payload) => {
-  console.log("📢 GOT DISRUPTION:", payload);
+  socket.on("disruption", (payload) => {
+    const clientTs = performance.now();
+    console.log("📢 GOT DISRUPTION (client):", clientTs, payload);
 
-  startDisruption({
-    id: payload.disruptionId,
-    sessionId,
-    studentId: payload.studentId,
-    studentName: payload.studentName,
-    type: payload.type,
-    label: payload.label || payload.utteranceText,
-    utteranceText: payload.utteranceText,
-    ts: payload.ts,
-    eventId: payload.eventId || null,     // 👈 חדש
-  });
+    // 1) FORCE UI UPDATE FIRST (bubble + store)
+    flushSync(() => {
+      // Save disruption to store (for analytics / feedback)
+      startDisruption({
+        id: payload.disruptionId,
+        sessionId,
+        studentId: payload.studentId,
+        studentName: payload.studentName,
+        type: payload.type,
+        label: payload.label || payload.utteranceText,
+        utteranceText: payload.utteranceText,
+        ts: payload.ts,
+        eventId: payload.eventId || null,
+      });
 
-  setSpeakingMap((prev) => ({
-    ...prev,
-    [payload.studentId]: payload.utteranceText,
-  }));
+      // Show bubble **immediately** for this student
+      setSpeakingMap((prev) => ({
+        ...prev,
+        [payload.studentId]: payload.utteranceText,
+      }));
 
-  setLastDisruption({
-    disruptionId: payload.disruptionId,
-    studentId: payload.studentId,
-    studentName: payload.studentName,
-    type: payload.type,
-    label: payload.label,
-    utteranceText: payload.utteranceText,
-    ts: payload.ts,
-    eventId: payload.eventId || null,     // 👈 חדש
-  });
-
-      const state = useClassroomStore.getState();
-      const student = state.students.find(
-        (s) => s.id === payload.studentId
-      );
-
-      // 🔊 כאן הקריאה בפועל ל־TTS בשרת
-      if (student) {
-        playTTSAudio({
-          text: payload.utteranceText,
-          gender: student.gender || "M",
-          studentId: payload.studentId,
-          behaviorProfile: student.behaviorProfile,
-        });
-      }
-
-      if (bubbleTimers.current.has(payload.studentId)) {
-        clearTimeout(bubbleTimers.current.get(payload.studentId));
-      }
-      bubbleTimers.current.set(
-        payload.studentId,
-        setTimeout(() => {
-          setSpeakingMap((prev) => {
-            const next = { ...prev };
-            delete next[payload.studentId];
-            return next;
-          });
-          bubbleTimers.current.delete(payload.studentId);
-        }, 3000)
-      );
+      // Keep lastDisruption in store
+      setLastDisruption({
+        disruptionId: payload.disruptionId,
+        studentId: payload.studentId,
+        studentName: payload.studentName,
+        type: payload.type,
+        label: payload.label,
+        utteranceText: payload.utteranceText,
+        ts: payload.ts,
+        eventId: payload.eventId || null,
+      });
     });
+
+    // 2) CLEAR BUBBLE AFTER 3 SEC (light)
+    if (bubbleTimers.current.has(payload.studentId)) {
+      clearTimeout(bubbleTimers.current.get(payload.studentId));
+    }
+    bubbleTimers.current.set(
+      payload.studentId,
+      setTimeout(() => {
+        setSpeakingMap((prev) => {
+          const next = { ...prev };
+          delete next[payload.studentId];
+          return next;
+        });
+        bubbleTimers.current.delete(payload.studentId);
+      }, 3000)
+    );
+
+    // 3) DEFER HEAVY WORK (TTS) TO NEXT TICK SO IT WON'T BLOCK RENDER
+    setTimeout(() => {
+      try {
+        const state = useClassroomStore.getState();
+        const student = state.students.find(
+          (s) => s.id === payload.studentId
+        );
+
+        if (student) {
+          playTTSAudio({
+            text: payload.utteranceText,
+            gender: student.gender || "M",
+            studentId: payload.studentId,
+            behaviorProfile: student.behaviorProfile,
+          });
+        }
+      } catch (err) {
+        console.error("TTS error after disruption:", err);
+      }
+    }, 0);
+  });
 
     return () => {
       clearInterval(timerRef.current);
