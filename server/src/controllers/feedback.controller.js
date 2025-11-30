@@ -45,11 +45,11 @@ async function saveTeacherResponse(req, res) {
     const responseDoc = await ResponseModel.create({
       sessionId, // 🔗 Session אמיתי
       eventId: eventDoc ? eventDoc._id : undefined,
-      studentId: disruption?.studentId || null,
+     // studentId: disruption?.studentId || null,
       teacherText,
-      audioPath: null,
+      //audioPath: null,
       responseTimeInSeconds,
-      emotion: null,
+      //emotion: null,
       voiceFeatures: normalizedVoiceFeatures,
       isGeneral: !eventDoc,
     });

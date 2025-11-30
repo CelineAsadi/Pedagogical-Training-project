@@ -10,11 +10,11 @@ const responseSchema = new mongoose.Schema(
         required: true,
       },
     eventId: { type: mongoose.Schema.Types.ObjectId, ref: "Event" },
-    studentId: { type: String },
+   // studentId: { type: String },
 
     teacherText: { type: String, required: true },
 
-    audioPath: String,
+    //audioPath: String,
     responseTimeInSeconds: Number,
 
     voiceFeatures: {
@@ -23,10 +23,10 @@ const responseSchema = new mongoose.Schema(
       tone: { type: String }, // "calm" | "stressed" | ...
     },
 
-    emotion: {
-      label: String,
-      confidence: Number,
-    },
+    //emotion: {
+      //label: String,
+      //confidence: Number,
+    //},
 
     isGeneral: { type: Boolean, default: false },
   },

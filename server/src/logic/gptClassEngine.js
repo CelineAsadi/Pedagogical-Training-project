@@ -71,10 +71,10 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
     timeline.push({
       kind: "teacher_turn",
       eventId: resp.eventId || null,
-      studentId: resp.studentId || null,
+      //studentId: resp.studentId || null,
       teacherText: resp.teacherText,
       responseTimeInSeconds: resp.responseTimeInSeconds,
-      emotion: resp.emotion || null,
+      //emotion: resp.emotion || null,
       isGeneral: resp.isGeneral || false,
       voiceFeatures: resp.voiceFeatures || null,
       at: resp.createdAt,
@@ -145,11 +145,11 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
     return {
       type: item.studentId ? "teacher_response" : "teacher_speech",
       timestamp: item.at,
-      studentId: item.studentId || null,
+     // studentId: item.studentId || null,
       text: item.teacherText,
       meta: {
         responseTimeInSeconds: item.responseTimeInSeconds,
-        emotion: item.emotion,
+       // emotion: item.emotion,
         isGeneral: item.isGeneral,
         voiceFeatures: item.voiceFeatures,
         replyToEventId: item.eventId,
