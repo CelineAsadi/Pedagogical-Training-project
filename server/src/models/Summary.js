@@ -15,6 +15,14 @@ const summarySchema = new mongoose.Schema(
     toneAvg: Number,
     pedagogyAvg: Number,
     avgResponseTime: Number,
+    strength: {
+      type: String,           // GPT-generated summary of strengths
+      default: null,
+    },
+    weakness: {
+      type: String,           // GPT-generated summary of weaknesses
+      default: null,
+    },
   },
   { timestamps: true }
 );

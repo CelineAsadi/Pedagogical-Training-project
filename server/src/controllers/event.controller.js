@@ -64,6 +64,8 @@ async function createEventFromDisruption({ sessionId, disruption }) {
       content: disruption.utteranceText,
       timestamp: ts,
       status: "open",
+      disruptionId: disruption.disruptionId || null, 
+
     };
 
     eventDoc = await EventModel.create(eventData);
