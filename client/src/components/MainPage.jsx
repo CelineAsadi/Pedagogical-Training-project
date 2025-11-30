@@ -1,76 +1,55 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";  
-import { axiosInstance } from "../lib/axios";
+import { Link, useNavigate } from "react-router-dom";
 import "../style/MainPage.css";
+
 import { authStore } from "../store/authStore";
+import { mainPageStore } from "../store/mainPageStore";
 
 const MainPage = () => {
   const [user, setUser] = useState(null);
-  const [lessonTopic, setLessonTopic] = useState("");//add
-const [topicConfirmed, setTopicConfirmed] = useState(false);//add
+  const [lessonTopic, setLessonTopic] = useState("");
+  const [topicConfirmed, setTopicConfirmed] = useState(false);
 
   const { logout } = authStore();
-  const navigate = useNavigate();                    
+  const { fetchUser, startBasicLesson } = mainPageStore();
 
+  const navigate = useNavigate();
+
+  // ============================
+  // Load user on page load
+  // ============================
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axiosInstance.get("/auth/check");
-        setUser(res.data);
-      } catch (err) {
-        console.error("Error fetching user:", err);
-      }
+    const load = async () => {
+      const u = await fetchUser();
+      setUser(u);
     };
-    fetchUser();
+    load();
   }, []);
 
-  const handleLogout = async () => {
-    logout();
-  };
-// client/src/components/MainPage.jsx (קטע רלוונטי)
+  const handleLogout = () => logout();
 
-const handleEnterBasicClass = async () => {
-  try {
+  // ============================
+  // Start basic class
+  // ============================
+  const handleEnterBasicClass = async () => {
     if (!lessonTopic.trim()) {
-      alert("Please enter a lesson topic first!");
+      alert("Please enter lesson topic!");
       return;
     }
 
-    // 1️⃣ יצירת שיעור בסיס בשרת
-    const lessonRes = await axiosInstance.post(
-      "/lesson/basic",
-      { lessonTopic },
-      { withCredentials: true }
-    );
+    const result = await startBasicLesson(lessonTopic);
+    if (!result) return;
 
-    const { lessonId, className } = lessonRes.data;
-
-    // 2️⃣ יצירת Session אמיתי
-    const sessionRes = await axiosInstance.post(
-      "/session/start",
-      { lessonId },
-      { withCredentials: true }
-    );
-
-    const sessionId = sessionRes.data.sessionId;
-
-    // 3️⃣ מעבר לכיתה – חשוב להעביר גם class וגם sessionId
     navigate(
       `/VirtualClassroom?class=${encodeURIComponent(
-        className
-      )}&sessionId=${sessionId}&type=basic`
+        result.className
+      )}&sessionId=${result.sessionId}&type=basic`
     );
-  } catch (err) {
-    console.error("❌ Error starting basic Session:", err);
-    alert("Could not start your session. Try again.");
-  }
-};
-
-
+  };
 
   return (
     <div>
-      {/* 🔹 Navbar */}
+      {/* ===== NAVBAR ===== */}
       <nav className="navbar">
         <div className="left-section">
           <div className="logo">
@@ -92,71 +71,70 @@ const handleEnterBasicClass = async () => {
         </ul>
       </nav>
 
-      {/* 🔹 Main Section */}
-<section className="main-hero">
-  <h1>
-    Welcome to <span>Pedagogical Training</span>
-  </h1>
-  <p>
-    Practice classroom management in a safe, AI-powered environment. Choose your path
-    and start improving your teaching skills 🚀
-  </p>
+      {/* ===== MAIN SECTION ===== */}
+      <section className="main-hero">
+        <h1>
+          Welcome to <span>Pedagogical Training</span>
+        </h1>
+        <p>
+          Practice classroom management in a safe, AI-powered environment.
+        </p>
 
-  {/* ======= שלב הוספת נושא השיעור ======= */}
-  {!topicConfirmed ? (
-    <div className="topic-input-container">
-      <h3>🧠 Please enter your lesson topic:</h3>
-      <input
-        type="text"
-        placeholder="e.g., Fractions, Reading Comprehension..."
-        value={lessonTopic}
-        onChange={(e) => setLessonTopic(e.target.value)}
-        className="topic-input"
-      />
-      <button
-        className="btn"
-        onClick={() => {
-          if (!lessonTopic.trim()) {
-            alert("Please enter a topic first!");
-            return;
-          }
-          setTopicConfirmed(true);
-        }}
-      >
-        OK
-      </button>
-    </div>
-  ) : (
-    /* ======= הכפתורים הרגילים ======= */
-    <div className="buttons">
-      <button
-        className="btn"
-        onClick={handleEnterBasicClass}
-      >
-        ENTER THE STANDARD VIRTUAL CLASSROOM
-      </button>
+        {/* ===== TOPIC INPUT ===== */}
+        {!topicConfirmed ? (
+          <div className="topic-input-container">
+            <h3>🧠 Please enter your lesson topic:</h3>
 
-      <button
-        className="btn"
-        onClick={() => navigate(`/LessonSettings?topic=${encodeURIComponent(lessonTopic)}`)}
-      >
-        SET UP A CLASSROOM
-      </button>
-    </div>
-  )}
-</section>
+            <input
+              type="text"
+              placeholder="e.g., Fractions, Reading..."
+              value={lessonTopic}
+              onChange={(e) => setLessonTopic(e.target.value)}
+              className="topic-input"
+            />
 
+            <button
+              className="btn"
+              onClick={() => {
+                if (!lessonTopic.trim()) {
+                  alert("Please enter a topic first!");
+                  return;
+                }
+                setTopicConfirmed(true);
+              }}
+            >
+              OK
+            </button>
+          </div>
+        ) : (
+          /* ===== ACTION BUTTONS ===== */
+          <div className="buttons">
+            <button className="btn" onClick={handleEnterBasicClass}>
+              ENTER THE STANDARD VIRTUAL CLASSROOM
+            </button>
 
-      {/* 🧩 Virtual Classroom Description */}
+            <button
+              className="btn"
+              onClick={() =>
+                navigate(`/LessonSettings?topic=${encodeURIComponent(lessonTopic)}`)
+              }
+            >
+              SET UP A CLASSROOM
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* ===== INFO SECTION ===== */}
       <section className="classroom-info">
         <h2>🎓 Standard Virtual Classroom Overview</h2>
         <p>
-          The <strong>standard simulation</strong> includes <strong>15 students</strong> with diverse personalities and classroom behaviors.
+          Includes <strong>15 students</strong> with realistic classroom behaviors.
         </p>
 
         <div className="student-summary">
           <ul>
-            <li>👀 3 Attentive students</li>
+            <li>👀 3 Attentive</li>
             <li>💬 2 Talkers</li>
             <li>😠 2 Defiant</li>
             <li>😢 2 Sensitive</li>
@@ -173,19 +151,14 @@ const handleEnterBasicClass = async () => {
         </p>
       </section>
 
-      {/* 🔹 Footer */}
+      {/* ===== FOOTER ===== */}
       <footer className="footer">
         <div className="footer-container">
-          {/* About */}
           <div className="footer-section">
             <h3>Pedagogical Training</h3>
-            <p>
-              AI-powered platform to help teachers improve classroom management
-              through realistic simulations.
-            </p>
+            <p>AI-powered teaching improvement platform.</p>
           </div>
 
-          {/* Quick Links */}
           <div className="footer-section">
             <h4>Quick Links</h4>
             <ul>
@@ -194,22 +167,18 @@ const handleEnterBasicClass = async () => {
             </ul>
           </div>
 
-          {/* Social */}
           <div className="footer-section">
             <h4>Follow Us</h4>
             <div className="social-icons">
-              <a href="https://github.com/CelineAsadi/Pedagogical-Training-project" target="_blank" rel="noreferrer">
+              <a href="https://github.com/CelineAsadi/Pedagogical-Training-project">
                 <i className="fab fa-github"></i>
-              </a>
-              <a href="https://linkedin.com" target="_blank" rel="noreferrer">
-                <i className="fab fa-linkedin"></i>
               </a>
             </div>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <p>© 2025 Pedagogical Training. All rights reserved.</p>
+          <p>© 2025 Pedagogical Training</p>
         </div>
       </footer>
     </div>

@@ -4,48 +4,31 @@ import { useSearchParams } from "react-router-dom";
 import { useClassroomConfig } from "../hooks/useClassroomConfig";
 import VirtualClassroomCore from "./VirtualClassroomCore";
 
+import "../style/VirtualClassroom.css";
+
 export default function VirtualClassroom() {
   const [searchParams] = useSearchParams();
-  const type = searchParams.get("type") || "basic"; // ברירת מחדל
-const sessionId = searchParams.get("sessionId") ;
-  // טוען את ההגדרות (custom מה-DB או basic ברירת מחדל)
+  const type = searchParams.get("type") || "basic";
+  const sessionId = searchParams.get("sessionId");
+
   const { config, loading } = useClassroomConfig(type);
 
   if (loading) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: "20vh",
-          fontSize: "20px",
-          color: "#555",
-        }}
-      >
-        Loading classroom...
-      </div>
+      <div className="vc-loading">Loading classroom...</div>
     );
   }
 
   if (!config) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: "20vh",
-          fontSize: "20px",
-          color: "#a00",
-        }}
-      >
-        No classroom configuration found.
-      </div>
-      
+      <div className="vc-error">No classroom configuration found.</div>
     );
   }
 
- return (
+  return (
     <VirtualClassroomCore
       config={config}
-      sessionId={sessionId} // ObjectId אמיתי מהשרת
+      sessionId={sessionId}
     />
   );
 }

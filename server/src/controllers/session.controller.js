@@ -33,6 +33,7 @@ exports.startSession = async (req, res) => {
       userId,
       lessonId: lesson._id,
       startTime: new Date(),
+      endTime: null, 
       status: "in-progress",
     });
 

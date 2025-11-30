@@ -94,6 +94,4 @@ verifyNewEmail: async(data) => {
     return false;
   }
 },
-
-
 }));

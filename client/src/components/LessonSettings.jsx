@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { authStore } from "../store/authStore";
-import toast from "react-hot-toast";
 import "../style/LessonSettings.css";
-import { axiosInstance } from "../lib/axios";
-import { Link, useNavigate } from "react-router-dom";  
-import { useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import { lessonSettingsStore } from "../store/lessonSettingsStore";
+import { authStore } from "../store/authStore";
 
 const LessonSettings = () => {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
   const { logout } = authStore();
+  const { saveLessonSettings, fetchUserData } = lessonSettingsStore();
+
+  const [searchParams] = useSearchParams();
+  const initialTopic = searchParams.get("topic") || "";
+
+  const [lessonTopic] = useState(initialTopic);
   const [classSize, setClassSize] = useState(5);
   const [duration, setDuration] = useState(5);
-  const navigate = useNavigate();                    
   const [className, setClassName] = useState("");
- const [searchParams] = useSearchParams();
-const initialTopic = searchParams.get("topic") || "";
-const [lessonTopic] = useState(initialTopic);
 
   const [studentTypes, setStudentTypes] = useState([
     { name: "Attentive", count: 0 },
@@ -38,77 +40,41 @@ const [lessonTopic] = useState(initialTopic);
     updated[index].count = newValue;
     setStudentTypes(updated);
   };
+
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axiosInstance.get("/auth/check");
-        setUser(res.data);
-      } catch (err) {
-        console.error("Error fetching user:", err);
-      }
-    };
-    fetchUser();
+    fetchUserData(setUser);
   }, []);
-// 
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!className.trim()) return toast.error("Please enter a class name.");
+    if (!className.trim()) {
+      toast.error("Please enter a class name.");
+      return;
+    }
 
-  if (totalStudents > classSize) {
-    toast.error("Total students exceed class size!");
-    return;
-  }
-  if (totalStudents < classSize) {
-    toast.error("Total students are less than class size!");
-    return;
-  }
+    if (totalStudents !== classSize) {
+      toast.error("Total students must match the class size!");
+      return;
+    }
 
-  try {
-    // 1️⃣ שמירת הגדרות השיעור בשרת
-    const res = await axiosInstance.post(
-      "/lesson/save",
-      { classSize, duration, studentTypes, className, lessonTopic },
-      { withCredentials: true }
-    );
+    const success = await saveLessonSettings({
+      classSize,
+      duration,
+      studentTypes,
+      className,
+      lessonTopic,
+    });
 
-    toast.success(res.data.message || "Lesson settings saved ✅");
-
-    // 👇 נשלוף את ה-lesson מתוך התשובה
-    const savedLesson = res.data.lesson;
-    const lessonId = savedLesson._id;          // ObjectId של LessonSettings
-    const savedClassName = savedLesson.className; // כבר lowercase לפי הסכמה
-
-    // 2️⃣ יצירת Session אמיתי לפי ה-lessonId
-    const sessionRes = await axiosInstance.post(
-      "/session/start",
-      { lessonId },
-      { withCredentials: true }
-    );
-
-    const sessionId = sessionRes.data.sessionId;
-
-    // 3️⃣ מעבר לכיתה – type=custom + class + sessionId
-    navigate(
-      `/VirtualClassroom?type=custom&class=${encodeURIComponent(
-        savedClassName || className
-      )}&sessionId=${sessionId}`
-    );
-  } catch (err) {
-    console.error("Error saving settings:", err.response?.data || err.message);
-    toast.error(err.response?.data?.message || "Failed to save settings");
-  }
-};
-
-
-  const handleLogout = () => logout();
-
-
+    if (success) {
+      navigate(success); // success returns classroom URL
+    }
+  };
 
   return (
     <div className="lesson-page">
-      {/* 🔹 Navbar */}
+      
+      {/* Navbar */}
       <nav className="navbar">
         <div className="left-section">
           <div className="logo">
@@ -123,27 +89,31 @@ const handleSubmit = async (e) => {
         <ul className="nav-links">
           <li><Link to="/simulation">My Simulation</Link></li>
           <li><Link to="/Profile">Profile</Link></li>
-          <li><button className="logout-btn" onClick={handleLogout}>Logout</button></li>
+          <li><button className="logout-btn" onClick={logout}>Logout</button></li>
           <li><Link to="/lang">🌐 ENG</Link></li>
         </ul>
       </nav>
 
-      {/* Lesson Settings */}
+      {/* Page Content */}
       <div className="lesson-settings">
         <h2>Lesson Settings</h2>
+
         <form onSubmit={handleSubmit}>
           <div className="settings-grid">
+            
+            {/* Left card */}
             <div className="settings-card">
               <h3>General</h3>
-               <div className="form-group">
+
+              <div className="form-group">
                 <label>Class Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. English Lesson"
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
                 />
               </div>
+
               <div className="form-group">
                 <label>Class Size (5–15)</label>
                 <input
@@ -169,10 +139,13 @@ const handleSubmit = async (e) => {
               <div className="total-row">
                 <strong>Total Students:</strong> {totalStudents} / {classSize}
               </div>
+
               <button type="submit" className="btn-save">Save Settings</button>
             </div>
+
+            {/* Right card */}
             <div className="settings-card">
-              <h3>Students Types</h3>
+              <h3>Student Types</h3>
               {studentTypes.map((type, i) => (
                 <div key={i} className="type-row">
                   <span className="type-name">{type.name}</span>
@@ -183,7 +156,6 @@ const handleSubmit = async (e) => {
                   </div>
                 </div>
               ))}
-
             </div>
 
           </div>
