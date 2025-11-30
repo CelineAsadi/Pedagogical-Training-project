@@ -34,22 +34,42 @@ function analyzeFrame(buffer, sampleRate) {
   return { volume, pitch };
 }
 
+/**
+ * 🧪 הערכת tone לפי עוצמה וגובה צליל
+ *
+ * שינינו פה 2 דברים:
+ * 1. הספים יותר רכים – צריך עוצמה גבוהה *באמת* כדי להגיע ל-"loud"/"angry".
+ * 2. "firm"/"stressed" מכסים את האזור של דיבור קצת חזק, בלי ישר לקרוא לזה צעקות.
+ */
 function estimateTone(volume, pitch) {
-  if (volume < 0.015) {
-    if (pitch < 150) return "calm";
+  const v = volume;
+
+  // מאוד שקט – דיבור רגוע / רך
+  if (v < 0.01) {
+    // pitch נמוך יחסית -> calm, גבוה קצת -> soft
+    if (pitch < 170) return "calm";
     return "soft";
   }
 
-  if (volume < 0.04) {
+  // דיבור רגיל
+  if (v < 0.035) {
     return "neutral";
   }
 
-  if (volume >= 0.04 && volume < 0.1) {
-    if (pitch > 220) return "stressed";
+  // דיבור קצת יותר חזק – אבל עדיין לא צעקות
+  if (v < 0.09) {
+    if (pitch > 230) return "stressed"; // טון לחוץ/גבוה
+    return "firm"; // אסרטיבי, קצת חזק
+  }
+
+  // עוצמה גבוהה יחסית, אבל עוד לא "צרחות"
+  if (v < 0.18) {
+    if (pitch > 250) return "stressed";
     return "firm";
   }
 
-  if (pitch > 250) return "angry";
+  // רק מעל 0.18 נחשיב כ-"loud"/"angry"
+  if (pitch > 260) return "angry";
   return "loud";
 }
 
@@ -129,10 +149,24 @@ export function useTeacherVoiceAnalysis({ enabled }) {
           }
 
           analyserRef.current.getFloatTimeDomainData(buffer);
-          const { volume, pitch } = analyzeFrame(buffer, audioContextRef.current.sampleRate);
-          const tone = estimateTone(volume, pitch);
+          const { volume, pitch } = analyzeFrame(
+            buffer,
+            audioContextRef.current.sampleRate
+          );
 
-          setFeatures({ volume, pitch, tone });
+          // 🧊 החלקה (smoothing) – כדי שקפיצות קצרות לא יהפכו מיד ל-"loud"
+          setFeatures((prev) => {
+            const alpha = 0.2; // כמה לתת משקל לחדש (0.2 = 20%)
+            const smoothVolume = alpha * volume + (1 - alpha) * prev.volume;
+            const smoothPitch = alpha * pitch + (1 - alpha) * prev.pitch;
+            const tone = estimateTone(smoothVolume, smoothPitch);
+
+            return {
+              volume: smoothVolume,
+              pitch: smoothPitch,
+              tone,
+            };
+          });
 
           rafIdRef.current = requestAnimationFrame(loop);
         }

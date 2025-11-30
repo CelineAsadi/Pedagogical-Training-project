@@ -210,12 +210,122 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
  * 🧠 מחליט מה לעשות בסיבוב הבא של ההפרעות — ללא "הפרעה מאולצת"
  *     אבל עם לוגיקה שתאפשר להפרעות להתחיל באופן טבעי.
  */
-async function decideNextDisruptions(sessionId, runtimeState = {}) {
+// async function decideNextDisruptions(sessionId, runtimeState = {}) {
+//   // ---------------------------------------------------------------
+//   // 1) BUILD SNAPSHOT
+//   // ---------------------------------------------------------------
+//   const snapshot = await buildClassroomSnapshot(sessionId, runtimeState);
+//   if (!snapshot) {
+//     console.warn("⚠️ Snapshot missing");
+//     return { actions: [], nextCheckInSeconds: 8 };
+//   }
 
+//   const elapsed = snapshot?.sessionMeta?.elapsedSeconds || 0;
+//   const recentEvents = snapshot?.recentEvents || [];
+
+//   const teacherHasSpoken = recentEvents.some(
+//     ev => ev.type === "teacher_speech" || ev.type === "teacher_response"
+//   );
+
+//   const lastStudentEvent = [...recentEvents].reverse().find(
+//     ev => ev.type === "student_disruption"
+//   );
+//   const hasAnyDisruptions = Boolean(lastStudentEvent);
+
+//   // ---------------------------------------------------------------
+//   // 2) NORMALIZE BEHAVIOR PROFILES
+//   // ---------------------------------------------------------------
+//   const validProfiles = [
+//     "attentive", "talker", "defiant", "sensitive",
+//     "withdrawn", "conflicts", "sarcastic", "hyperactive", "neutral"
+//   ];
+
+//   snapshot.students = snapshot.students.map(s => ({
+//     ...s,
+//     behaviorProfile: validProfiles.includes(s.behaviorProfile)
+//       ? s.behaviorProfile
+//       : "neutral",
+//   }));
+
+//   // ---------------------------------------------------------------
+//   // 3) GPT DECISION
+//   // ---------------------------------------------------------------
+//   let gptResult;
+//   try {
+//     gptResult = await decideDisruptions(snapshot);
+//   } catch (err) {
+//     console.error("❌ GPT disruption engine error:", err);
+//     return { actions: [], nextCheckInSeconds: 10 };
+//   }
+
+//   let disruptions = Array.isArray(gptResult?.disruptions)
+//     ? gptResult.disruptions
+//     : [];
+
+//   // ---------------------------------------------------------------
+//   // 4) ALLOW DISRUPTIONS EARLY IF CLASS IS SILENT
+//   // ---------------------------------------------------------------
+//   const allowEarlyDisruptions =
+//     (!teacherHasSpoken && !hasAnyDisruptions && elapsed > 5);
+
+//   const allowDisruptionBoost =
+//     (gptResult.globalDecision === "none" && allowEarlyDisruptions);
+
+//   if (allowDisruptionBoost && disruptions.length === 0) {
+//     const anyStudent = snapshot.students[0];
+//     if (anyStudent) {
+//       disruptions = [
+//         {
+//           studentId: anyStudent.id,
+//           behaviorProfile: anyStudent.behaviorProfile,
+//           type: "disruption",
+//           label: "מתלבט",
+//           utteranceText: "אממ… לא הבנתי מאיפה להתחיל."
+//         }
+//       ];
+//       console.log("✨ Boosted disruption because class is too quiet.");
+//     }
+//   }
+
+//   // ---------------------------------------------------------------
+//   // 5) MAP TO ACTIONS
+//   // ---------------------------------------------------------------
+//   const actions = disruptions.map((d, idx) => ({
+//     studentId: d.studentId,
+//     behavior: d.behaviorProfile || "neutral",
+//     label: d.label || "תלמיד",
+//     utteranceText: d.utteranceText || "",
+//     eventType: d.type === "question" ? "question" : "disruption",
+//     delayMs: idx * 350,
+//   }));
+
+//   // ---------------------------------------------------------------
+//   // 6) NEXT CHECK TIME
+//   // ---------------------------------------------------------------
+//   let nextCheckInSeconds = 6;
+
+//   switch (gptResult.globalDecision) {
+//     case "none":
+//       nextCheckInSeconds = 5 + Math.floor(Math.random() * 3); // 5–7
+//       break;
+//     case "single":
+//       nextCheckInSeconds = 4 + Math.floor(Math.random() * 2); // 4–5
+//       break;
+//     case "multi":
+//       nextCheckInSeconds = 6 + Math.floor(Math.random() * 4); // 6–9
+//       break;
+//   }
+
+//   return { actions, nextCheckInSeconds };
+// }
+
+async function decideNextDisruptions(sessionId, runtimeState = {}) {
   // ---------------------------------------------------------------
   // 1) BUILD SNAPSHOT
   // ---------------------------------------------------------------
   const snapshot = await buildClassroomSnapshot(sessionId, runtimeState);
+  const sessionMeta = snapshot.sessionMeta || {};
+
   if (!snapshot) {
     console.warn("⚠️ Snapshot missing");
     return { actions: [], nextCheckInSeconds: 8 };
@@ -224,24 +334,61 @@ async function decideNextDisruptions(sessionId, runtimeState = {}) {
   const elapsed = snapshot?.sessionMeta?.elapsedSeconds || 0;
   const recentEvents = snapshot?.recentEvents || [];
 
-  const teacherHasSpoken = recentEvents.some(
-    ev => ev.type === "teacher_speech" || ev.type === "teacher_response"
+  // ✏️ חישוב דיבור מורה (כמו שכבר עשינו קודם)
+  const teacherEvents = recentEvents.filter(
+    (ev) => ev.type === "teacher_speech" || ev.type === "teacher_response"
   );
 
-  const lastStudentEvent = [...recentEvents].reverse().find(
-    ev => ev.type === "student_disruption"
+  const totalTeacherText = teacherEvents
+    .map((ev) => ev.text || "")
+    .join(" ");
+
+  const totalWords = totalTeacherText.split(/\s+/).filter(Boolean).length;
+
+  // חסם – לא מייצרים הפרעות לפני שהמורה באמת דיברה קצת
+  // if (totalWords < 4 || teacherEvents.length < 1) {
+    
+  //   console.log(
+  //     "[Guard] Too little teacher speech yet (words:",
+  //     totalWords,
+  //     ", teacherEvents:",
+  //     teacherEvents.length,
+  //     ") → forcing no disruptions this round."
+  //   );
+
+  //   return {
+  //     actions: [],
+  //     nextCheckInSeconds: 6,
+  //   };
+  // }
+
+ if (sessionMeta.elapsedSeconds < 40 && teacherEvents.length === 0) {
+  console.log(
+    "[Guard] Very early and no teacher speech yet → forcing no disruptions this round."
   );
-  const hasAnyDisruptions = Boolean(lastStudentEvent);
+  return {
+    actions: [],                 // ← חייבים actions
+    nextCheckInSeconds: 6,       // ← חייבים תזמון
+  };
+}
+
 
   // ---------------------------------------------------------------
   // 2) NORMALIZE BEHAVIOR PROFILES
   // ---------------------------------------------------------------
   const validProfiles = [
-    "attentive", "talker", "defiant", "sensitive",
-    "withdrawn", "conflicts", "sarcastic", "hyperactive", "neutral"
+    "attentive",
+    "talker",
+    "defiant",
+    "sensitive",
+    "withdrawn",
+    "conflicts",
+    "sarcastic",
+    "hyperactive",
+    "neutral",
   ];
 
-  snapshot.students = snapshot.students.map(s => ({
+  snapshot.students = snapshot.students.map((s) => ({
     ...s,
     behaviorProfile: validProfiles.includes(s.behaviorProfile)
       ? s.behaviorProfile
@@ -258,38 +405,59 @@ async function decideNextDisruptions(sessionId, runtimeState = {}) {
     console.error("❌ GPT disruption engine error:", err);
     return { actions: [], nextCheckInSeconds: 10 };
   }
+//newww
+  if (!gptResult || !Array.isArray(gptResult.disruptions)) {
+  return {
+    actions: [],
+    nextCheckInSeconds: 6,
+  };
+}
+
 
   let disruptions = Array.isArray(gptResult?.disruptions)
     ? gptResult.disruptions
     : [];
 
   // ---------------------------------------------------------------
-  // 4) ALLOW DISRUPTIONS EARLY IF CLASS IS SILENT
+  // 3.1 FIX studentId – שמות במקום id
   // ---------------------------------------------------------------
-  const allowEarlyDisruptions =
-    (!teacherHasSpoken && !hasAnyDisruptions && elapsed > 5);
+  const students = snapshot.students || [];
 
-  const allowDisruptionBoost =
-    (gptResult.globalDecision === "none" && allowEarlyDisruptions);
+  disruptions = disruptions
+    .map((d) => {
+      let sid = d.studentId;
 
-  if (allowDisruptionBoost && disruptions.length === 0) {
-    const anyStudent = snapshot.students[0];
-    if (anyStudent) {
-      disruptions = [
-        {
-          studentId: anyStudent.id,
-          behaviorProfile: anyStudent.behaviorProfile,
-          type: "disruption",
-          label: "מתלבט",
-          utteranceText: "אממ… לא הבנתי מאיפה להתחיל."
-        }
-      ];
-      console.log("✨ Boosted disruption because class is too quiet.");
-    }
-  }
+      if (!sid) return null;
+
+      // אם ה-id שקיבלנו כבר קיים ברשימת התלמידים – הכול טוב
+      const matchById = students.find((s) => String(s.id) === String(sid));
+      if (matchById) {
+        return {
+          ...d,
+          studentId: String(matchById.id),
+        };
+      }
+
+      // אם לא – ננסה להתייחס ל-studentId כאל name
+      const matchByName = students.find((s) => s.name === sid);
+      if (matchByName) {
+        return {
+          ...d,
+          studentId: String(matchByName.id),
+        };
+      }
+
+      // אם לא מצאנו – נזרוק את ההפרעה הזו
+      console.warn(
+        "[disruption] Dropping disruption with unknown studentId:",
+        sid
+      );
+      return null;
+    })
+    .filter(Boolean);
 
   // ---------------------------------------------------------------
-  // 5) MAP TO ACTIONS
+  // 4) MAP TO ACTIONS
   // ---------------------------------------------------------------
   const actions = disruptions.map((d, idx) => ({
     studentId: d.studentId,
@@ -301,7 +469,7 @@ async function decideNextDisruptions(sessionId, runtimeState = {}) {
   }));
 
   // ---------------------------------------------------------------
-  // 6) NEXT CHECK TIME
+  // 5) NEXT CHECK TIME
   // ---------------------------------------------------------------
   let nextCheckInSeconds = 6;
 
