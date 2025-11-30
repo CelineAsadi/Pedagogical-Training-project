@@ -1,9 +1,11 @@
 import "../style/Profile.css";
 import { authStore } from "../store/authStore";
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const { authUser, logout, updateProfile, verifyNewEmail } = authStore();
+
 
   const [formData, setFormData] = useState({
     FName: "",
@@ -17,7 +19,6 @@ const Profile = () => {
   const [emailVerified, setEmailVerified] = useState(true); 
   const [verificationCode, setVerificationCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
-
   useEffect(() => {
     if (authUser) {
       setFormData({
@@ -31,6 +32,7 @@ const Profile = () => {
       setEmailVerified(true); 
     }
   }, [authUser]);
+  const handleLogout = () => logout();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -91,11 +93,17 @@ const Profile = () => {
         <div className="logo">
           <img src="/ourLogo.png" alt="Pedagogical Training" />
         </div>
-        <ul className="profile-nav-links">
-          <li><a href="/simulation">My Simulation</a></li>
-          <li><a href="/Profile" className="active">Profile</a></li>
-          <li><button className="logout-btn" onClick={logout}>Logout</button></li>
-          <li><a href="/lang">🌐 ENG</a></li>
+        <div className="username">
+            <span className="hello">Hello, </span>
+           <span className="name">{formData.FName} {formData.LName}</span>
+          </div>
+        <ul className="nav-links">
+          <li><Link to="/MySimulations">My Simulation</Link></li>
+          <li><Link to="/Profile">Profile</Link></li>
+          <li>
+            <button className="logout-btn" onClick={handleLogout}>Logout</button>
+          </li>
+          <li><Link to="/lang">🌐 ENG</Link></li>
         </ul>
       </nav>
 

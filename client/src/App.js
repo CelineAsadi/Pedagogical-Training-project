@@ -14,6 +14,8 @@ import { authStore } from './store/authStore';
 import { useEffect } from 'react';
 import { Toaster } from "react-hot-toast";
 import VirtualClassroom from './components/VirtualClassroom';
+import MySimulations from './components/MySimulations';
+
 
 function VirtualClassroomWrapper() {
   const [params] = useSearchParams();
@@ -66,6 +68,10 @@ function App() {
           <Route
             path="/Profile"
             element={authUser ? <Profile /> : <Navigate to="/" replace />}
+          />
+            <Route
+            path="/MySimulations"
+            element={authUser ? <MySimulations /> : <Navigate to="/" replace />}
           />
           <Route
             path="/LessonSettings"
