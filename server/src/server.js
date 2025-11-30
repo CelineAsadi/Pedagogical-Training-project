@@ -20,6 +20,8 @@ const feedbackRoutes = require("./routes/feedback.route");
 const sessionRoutes = require("./routes/session.routes");
 const { initLessonSocket } = require("./socket/lessonSocket");
 
+const summaryRoutes = require("./routes/summary.route");
+
 
 dotenv.config();
 
@@ -64,7 +66,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/session", sessionRoutes);
 app.use("/api/tts", ttsRoutes);
 
-
+app.use("/api/summary", summaryRoutes);
 /* =========================
    🧪 Health Check (Dev Only)
    ========================= */
