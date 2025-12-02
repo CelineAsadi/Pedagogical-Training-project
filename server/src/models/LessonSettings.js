@@ -34,6 +34,8 @@ const lessonSettingsSchema = new mongoose.Schema({
 
 // ⚙️ אינדקס חדש: שם כיתה ייחודי למשתמש עצמו
 lessonSettingsSchema.index({ userId: 1, className: 1 }, { unique: true });
+// 🔥 For fast pagination sorted by creation time
+lessonSettingsSchema.index({ userId: 1, createdAt: -1 });
 
 const LessonSettings = mongoose.model("LessonSettings", lessonSettingsSchema);
 module.exports = LessonSettings;

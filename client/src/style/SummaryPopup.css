@@ -1,0 +1,77 @@
+/* FULLSCREEN DARK OVERLAY */
+.summary-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+
+  background: rgba(0, 0, 0, 0.55); 
+  backdrop-filter: blur(3px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 999999; /* 🔥 Always above the 3D Canvas */
+}
+
+/* POPUP WINDOW */
+.summary-window {
+  width: 70%;
+  max-width: 900px;
+  max-height: 85vh;
+
+  background: white;
+  padding: 25px;
+  border-radius: 18px;
+
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+
+  position: relative;
+  z-index: 1000000; /* ensure above overlay */
+}
+
+/* CLOSE BUTTON */
+.summary-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+
+  font-size: 26px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #333;
+}
+
+.summary-title {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 1.7rem;
+}
+
+/********* SECTIONS *********/
+.summary-section {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 14px;
+  background: #f8faff;
+  border: 1px solid #e1e5f2;
+}
+
+.summary-layout {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.summary-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-right {
+  flex: 1;
+  min-width: 0;
+}

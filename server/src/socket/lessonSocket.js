@@ -3,7 +3,7 @@
 const { Server } = require("socket.io");
 const { decideNextDisruptions } = require("../logic/gptClassEngine");
 const EventModel = require("../models/Event");
-
+const Session = require("../models/Session");
 
 // ננהל מצב זיכרון לכל sessionId
 // {
@@ -124,14 +124,36 @@ function initLessonSocket(httpServer) {
     /**
      * עצירת שיעור
      */
-    socket.on("lesson:stop", () => {
-      console.log("🛑 Lesson stopped for session", sessionId);
-      runtimeState.isRunning = false;
-      if (runtimeState.timer) {
-        clearTimeout(runtimeState.timer);
-        runtimeState.timer = null;
-      }
+    // socket.on("lesson:stop", () => {
+    //   console.log("🛑 Lesson stopped for session", sessionId);
+    //   runtimeState.isRunning = false;
+    //   if (runtimeState.timer) {
+    //     clearTimeout(runtimeState.timer);
+    //     runtimeState.timer = null;
+    //   }
+    // });
+  socket.on("lesson:stop", async () => {
+  console.log("🛑 Lesson stopped for session", sessionId);
+
+  runtimeState.isRunning = false;
+
+  if (runtimeState.timer) {
+    clearTimeout(runtimeState.timer);
+    runtimeState.timer = null;
+  }
+
+  // ⏱️ Update session endTime in DB
+  try {
+    await Session.findByIdAndUpdate(sessionId, {
+      endTime: new Date(),
+      status: "completed",
     });
+    console.log("✅ Session endTime updated:", sessionId);
+  } catch (err) {
+    console.error("❌ Failed to update endTime:", err);
+  }
+});
+
 
     socket.on("disconnect", () => {
       console.log("🔌 Client disconnected. sessionId=", sessionId);

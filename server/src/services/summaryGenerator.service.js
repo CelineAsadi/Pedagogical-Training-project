@@ -7,31 +7,33 @@ const OpenAI = require("openai");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-/**
- * בונה Summary מלא לסשן
- */
+/** Build Summary for one session */
 async function generateSessionSummary(sessionId) {
-  // 1️⃣ לוקחים כל הפידבקים של הסשן
+  console.log("📌 [SUMMARY] Starting summary generation for session:", sessionId);
+
+  // 1️⃣ Get all feedbacks
   const feedbacks = await Feedback.find({ sessionId }).lean();
+  console.log("📌 [SUMMARY] Loaded feedback documents:", feedbacks.length);
 
   if (feedbacks.length === 0) {
+    console.log("❌ [SUMMARY] No feedbacks found → stopping");
     throw new Error("No feedbacks for summary");
   }
 
-  // 2️⃣ מחשבים ממוצעים
+  // 2️⃣ Averages
   const timingAvg = avg(feedbacks.map(f => f.scoring?.timing).filter(Number));
   const toneAvg = avg(feedbacks.map(f => f.scoring?.tone).filter(Number));
   const pedagogyAvg = avg(feedbacks.map(f => f.scoring?.pedagogy).filter(Number));
   const overallAvg = avg(feedbacks.map(f => f.scoring?.overall).filter(Number));
 
-  // 3️⃣ זמן תגובה ממוצע של המורה
+  // 3️⃣ Avg response time
   const responses = await Response.find({ sessionId }).lean();
   const avgResponseTime = avg(responses.map(r => r.responseTimeInSeconds).filter(Number));
 
-  // 4️⃣ Events – כל ההפרעות שהיו
+  // 4️⃣ Events
   const events = await Event.find({ sessionId }).lean();
 
-  // 5️⃣ בניית Prompt ל-GPT
+  // 5️⃣ Build prompt
   const prompt = buildSummaryPrompt({
     feedbacks,
     responses,
@@ -43,18 +45,37 @@ async function generateSessionSummary(sessionId) {
     avgResponseTime
   });
 
-  // 6️⃣ קריאה ל-GPT
+  console.log("📌 [SUMMARY] GPT Prompt sent:\n", prompt);
+
+  // 6️⃣ GPT CALL
   const gptRes = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: "אתה מסכם ביצוע של מורה בסימולציה פדגוגית." },
+      { role: "system", content: "You summarize a teacher's performance in a pedagogical simulation. This means you summarize all the feedback from that simulation." },
       { role: "user", content: prompt }
     ]
   });
 
-  const analysis = JSON.parse(gptRes.choices[0].message.content);
+  console.log("📌 [SUMMARY] GPT Raw Response:\n", gptRes.choices[0].message.content);
 
-  // 7️⃣ שמירת Summary בדאטאבייס
+let raw = gptRes.choices[0].message.content || "";
+
+// 🧹 Remove markdown code fences
+raw = raw.replace(/```json/gi, "")
+         .replace(/```/g, "")
+         .trim();
+
+console.log("📌 [SUMMARY] Cleaned GPT Response:", raw);
+
+let analysis;
+try {
+  analysis = JSON.parse(raw);
+} catch (e) {
+  console.error("❌ Failed to parse GPT response:", e, "\nRaw:", raw);
+  throw new Error("GPT summary JSON malformed");
+}
+
+  // 7️⃣ SAVE SUMMARY
   const summary = await Summary.create({
     sessionId,
     overallAvg,
@@ -66,39 +87,39 @@ async function generateSessionSummary(sessionId) {
     weakness: analysis.weakness
   });
 
+  console.log("✅ [SUMMARY] Final saved summary:\n", summary);
+
   return summary;
 }
 
 function avg(arr) {
   if (!arr.length) return null;
-  return Number((arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(2));
+  return Number((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2));
 }
 
 function buildSummaryPrompt(data) {
   return `
-נתוני סשן:
-- ממוצע overall: ${data.overallAvg}
-- ממוצע timing: ${data.timingAvg}
-- ממוצע tone: ${data.toneAvg}
-- ממוצע pedagogy: ${data.pedagogyAvg}
-- זמן תגובה ממוצע: ${data.avgResponseTime}
+ Session data:
+- overall average: ${data.overallAvg}
+- timing average: ${data.timingAvg}
+- tone average: ${data.toneAvg}
+- pedagogy average: ${data.pedagogyAvg}
+- response time average: ${data.avgResponseTime}
 
-פידבקים לכל תגובה:
+Feedback:
 ${JSON.stringify(data.feedbacks, null, 2)}
 
-תגובות המורה:
+Teacher responses:
 ${JSON.stringify(data.responses, null, 2)}
 
-הפרעות:
+Interruptions:
 ${JSON.stringify(data.events, null, 2)}
 
-הוראות:
-אתה צריך לספק summary כללי לסשן.
-תחזיר JSON בצורה:
+Instructions:
+Return JSON:
 {
-  "strength": "…",
-  "weakness": "…"
-}
+"strength": "…",
+"weakness": "…"
 `;
 }
 

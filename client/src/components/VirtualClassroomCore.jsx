@@ -3,6 +3,9 @@ import React, { useMemo, useRef, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import "../style/VirtualClassroomCore.css";
+import { useNavigate } from "react-router-dom";
+
+
 
 import { useClassroomStore, ROOM, SNAP, FACE_FRONT } from "../lib/store";
 import { useDragOnFloor, snapVec3, clampToRoom } from "../lib/drag";
@@ -263,6 +266,8 @@ export default function VirtualClassroomCore({ config, sessionId }) {
   const [isRecording, setIsRecording] = useState(false);
   const [timeLeft, setTimeLeft] = useState((config?.duration ?? 5) * 60);
   const timerRef = useRef(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
 
   const { features: voiceFeatures } = useTeacherVoiceAnalysis({
     enabled: started,
@@ -306,6 +311,10 @@ export default function VirtualClassroomCore({ config, sessionId }) {
     language: "he-IL",
     onFinalUtterance: handleTeacherFinalUtterance,
   });
+
+  const navigate = useNavigate();
+
+
 
   // ===== Socket.io – קבלת ההפרעות מהשרת =====
   useEffect(() => {
@@ -431,12 +440,35 @@ export default function VirtualClassroomCore({ config, sessionId }) {
   };
 
   // ===== עצירת סימולציה =====
-  const handleStop = () => {
-    socketRef.current?.emit("lesson:stop", { sessionId });
-    clearInterval(timerRef.current);
-    setStarted(false);
-    setIsRecording(false);
-  };
+  const handleStop = async () => {
+  if (socketRef.current) {
+    socketRef.current.emit("lesson:stop", { sessionId });
+ socketRef.current.disconnect();
+    socketRef.current.off("disruption");
+    socketRef.current.off("student:moved");
+
+    window.speechSynthesis?.cancel();
+
+   
+  }
+
+  clearInterval(timerRef.current);
+  setStarted(false);
+  setIsRecording(false);
+
+  console.log("📌 Generating summary for session:", sessionId);
+
+  try {
+    const res = await axiosInstance.post("/summary/generate", { sessionId });
+    console.log("📘 SUMMARY GENERATED:", res.data);
+
+    navigate("/MainPage", { state: { summary: res.data.summary } });
+
+  } catch (err) {
+    console.error("❌ Summary generation failed:", err);
+  }
+};
+
 
   // ===== JSX =====
   return (
@@ -562,6 +594,7 @@ export default function VirtualClassroomCore({ config, sessionId }) {
           onClick={() => setIsSidebarOpen(false)}
         ></div>
       )}
+
     </div>
   );
 }

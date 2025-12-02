@@ -43,4 +43,15 @@ export const mainPageStore = create((set, get) => ({
       return null;
     }
   },
+
+  fetchUserClasses: async (page = 1, limit = 5) => {
+    const res = await axiosInstance.get(`/lesson/all?page=${page}&limit=${limit}`);
+    return res.data; // contains { classes, hasMore, page, totalPages }
+  },
+  fetchClassSummaries: async (classId) => {
+  const res = await axiosInstance.get(`/lesson/${classId}/with-summaries`);
+  return res.data;  // contains { lesson, totalSessions, sessions[] }
+},
+
+
 }));

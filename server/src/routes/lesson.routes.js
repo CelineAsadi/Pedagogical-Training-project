@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { saveLessonSettings, getLessonSettings,getUserClasses,createBasicClass  } = require("../controllers/lesson.controller");
+const { saveLessonSettings, getLessonSettings,getUserClasses,createBasicClass, getClassWithSummaries  } = require("../controllers/lesson.controller");
 const protectRoute = require("../middleware/auth.middleware"); // middleware קיים אצלך
 
 // שמירת הגדרות כיתה
@@ -11,5 +11,7 @@ router.get("/lesson/settings", protectRoute, getLessonSettings);
 // שליפת כל הכיתות של המשתמש
 router.get("/lesson/all", protectRoute, getUserClasses);
 router.post("/lesson/basic", protectRoute, createBasicClass);
+router.get("/lesson/:classId/with-summaries", protectRoute, getClassWithSummaries);
+
 
 module.exports = router;

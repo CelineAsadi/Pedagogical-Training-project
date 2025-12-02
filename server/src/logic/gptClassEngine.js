@@ -323,6 +323,7 @@ async function decideNextDisruptions(sessionId, runtimeState = {}) {
   // ---------------------------------------------------------------
   // 1) BUILD SNAPSHOT
   // ---------------------------------------------------------------
+  
   const snapshot = await buildClassroomSnapshot(sessionId, runtimeState);
   const sessionMeta = snapshot.sessionMeta || {};
 

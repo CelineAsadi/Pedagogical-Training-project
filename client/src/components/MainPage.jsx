@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../style/MainPage.css";
+import SummaryPopup from "../components/SummaryPopup";             
+
 
 import { authStore } from "../store/authStore";
 import { mainPageStore } from "../store/mainPageStore";
@@ -9,6 +11,13 @@ const MainPage = () => {
   const [user, setUser] = useState(null);
   const [lessonTopic, setLessonTopic] = useState("");
   const [topicConfirmed, setTopicConfirmed] = useState(false);
+
+  const location = useLocation();
+  const summaryFromNavigation = location.state?.summary || null;
+  
+  const [summaryPopup, setSummaryPopup] = useState(summaryFromNavigation);
+  
+
 
   const { logout } = authStore();
   const { fetchUser, startBasicLesson } = mainPageStore();
@@ -46,6 +55,13 @@ const MainPage = () => {
       )}&sessionId=${result.sessionId}&type=basic`
     );
   };
+
+  const handleCloseSummary = () => {
+    setSummaryPopup(null);
+    // Optional: remove summary from browser history so popup doesn't show again on refresh
+    navigate(".", { replace: true });
+  };
+
 
   return (
     <div>
@@ -181,6 +197,13 @@ const MainPage = () => {
           <p>© 2025 Pedagogical Training</p>
         </div>
       </footer>
+      {summaryPopup && (
+  <SummaryPopup 
+    summary={summaryPopup}
+    onClose={handleCloseSummary}
+  />
+)}
+
     </div>
   );
 };

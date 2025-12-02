@@ -1,4 +1,6 @@
 const LessonSettings = require("../models/LessonSettings");
+const Session = require("../models/Session");
+const Summary = require("../models/Summary");
 
 /**
  * ויצירה שמירת הגדרות כיתה למשתמש
@@ -78,14 +80,30 @@ const LessonSettings = require("../models/LessonSettings");
 /**
  * ✅ שליפת כל הכיתות של המשתמש
  */
- exports.getUserClasses = async (req, res) => {
+exports.getUserClasses = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const classes = await LessonSettings.find({ userId }).sort({ createdAt: -1 });
+    // 📌 Default pagination values
+    const page = parseInt(req.query.page) || 1;     // page number, default 1
+    const limit = parseInt(req.query.limit) || 5;   // 5 classes per page
+    const skip = (page - 1) * limit;
+
+    // 🔍 Count total classes for pagination
+    const totalClasses = await LessonSettings.countDocuments({ userId });
+
+    // 📥 Fetch only one page
+    const classes = await LessonSettings.find({ userId })
+      .sort({ createdAt: -1 }) // newest first
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
-      message: `Found ${classes.length} classes for user.`,
+      page,
+      limit,
+      totalClasses,
+      totalPages: Math.ceil(totalClasses / limit),
+      hasMore: page * limit < totalClasses,
       classes,
     });
   } catch (err) {
@@ -93,6 +111,7 @@ const LessonSettings = require("../models/LessonSettings");
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
  // server/src/controllers/lesson.controller.js
 exports.createBasicClass = async (req, res) => {
   try {
@@ -134,6 +153,59 @@ exports.createBasicClass = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Error creating basic class:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const mongoose = require("mongoose");
+
+exports.getClassWithSummaries = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { classId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(classId)) {
+      return res.status(400).json({ message: "Invalid classId" });
+    }
+
+    const lesson = await LessonSettings.findOne({
+      _id: classId,
+      userId,
+    });
+
+    if (!lesson) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    // 🔥 FIX: correct ObjectId conversion
+    const sessions = await Session.find({
+      lessonId: new mongoose.Types.ObjectId(classId),
+      userId
+    }).sort({ createdAt: -1 });
+
+    if (sessions.length === 0) {
+      return res.json({
+        sessions: [],
+        summaries: [],
+        message: "No sessions found for this class.",
+      });
+    }
+
+    const sessionIds = sessions.map(s => s._id);
+
+    const summaries = await Summary.find({
+      sessionId: { $in: sessionIds },
+    });
+
+    const result = sessions.map(session => ({
+      ...session.toObject(),
+      summary: summaries.find(s => String(s.sessionId) === String(session._id)) || null
+    }));
+
+    res.json({ sessions: result });
+
+  } catch (err) {
+    console.error("❌ Error fetching class with summaries:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };
