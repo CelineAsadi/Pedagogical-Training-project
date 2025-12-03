@@ -256,6 +256,12 @@ export default function VirtualClassroomCore({ config, sessionId }) {
   const addTeacherResponse = useClassroomStore((s) => s.addTeacherResponse);
   const lastDisruption = useClassroomStore((s) => s.lastDisruption);
 
+  // 🧹 איפוס הפרעה אחרונה כש-sessionId משתנה (שיעור חדש)
+useEffect(() => {
+  console.log("🔄 RESET lastDisruption because sessionId changed:", sessionId);
+  setLastDisruption(null);
+}, [sessionId, setLastDisruption]);
+
   // ===== Local UI state =====
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
