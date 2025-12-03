@@ -76,7 +76,7 @@ export default function SummaryPopup({ summary, onClose }) {
   <h3>📊 Progress (latest + 2 previous)</h3>
 
   <div className="graph-container">
-    <ResponsiveContainer>
+    <ResponsiveContainer width="100%" aspect={2.5}>
       <BarChart data={graphData}>
         <CartesianGrid strokeDasharray="3 3" stroke="#cfd7e6" />
         <XAxis 
