@@ -52,6 +52,10 @@ export const mainPageStore = create((set, get) => ({
   const res = await axiosInstance.get(`/lesson/${classId}/with-summaries`);
   return res.data;  // contains { lesson, totalSessions, sessions[] }
 },
+fetchLastThree: async (sessionId) => {
+  const res = await axiosInstance.get(`/session/last-three/${sessionId}`);
+  return res.data;
+},
 
 
 }));

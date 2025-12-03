@@ -90,7 +90,6 @@
   z-index: 1000;
 }
 
-/* Left side: Logo + Hello User */
 .left-section {
   display: flex;
   align-items: center;
@@ -121,38 +120,6 @@
   font-weight: bold;
 }
 
-
-/* Buttons Section */
-.buttons {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-}
-
-.btn {
-  display: inline-block;      
-  padding: 10px 24px;
-  border: 2px solid #0056b3;    
-  border-radius: 30px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: transparent;
-  color: #0056b3;
-  text-transform: uppercase;
-}
-
-/* Hover */
-.btn:hover,
-.btn:focus {
-  background: #0056b3;
-  color: #fff;
-  outline: none;
-}
-
-
-/* Logout button */
 .logout-btn {
   background: transparent;
   border: none;
