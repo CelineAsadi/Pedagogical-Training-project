@@ -1,3 +1,130 @@
+// // server/src/services/summaryGenerator.service.js
+// const Feedback = require("../models/Feedback");
+// const Response = require("../models/Response");
+// const Event = require("../models/Event");
+// const Summary = require("../models/Summary");
+// const OpenAI = require("openai");
+
+// const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// /** Build Summary for one session */
+// async function generateSessionSummary(sessionId) {
+//   console.log("📌 [SUMMARY] Starting summary generation for session:", sessionId);
+
+//   // 1️⃣ Get all feedbacks
+//   const feedbacks = await Feedback.find({ sessionId }).lean();
+//   console.log("📌 [SUMMARY] Loaded feedback documents:", feedbacks.length);
+
+//   if (feedbacks.length === 0) {
+//     console.log("❌ [SUMMARY] No feedbacks found → stopping");
+//     throw new Error("No feedbacks for summary");
+//   }
+
+//   // 2️⃣ Averages
+//   const timingAvg = avg(feedbacks.map(f => f.scoring?.timing).filter(Number));
+//   const toneAvg = avg(feedbacks.map(f => f.scoring?.tone).filter(Number));
+//   const pedagogyAvg = avg(feedbacks.map(f => f.scoring?.pedagogy).filter(Number));
+//   const overallAvg = avg(feedbacks.map(f => f.scoring?.overall).filter(Number));
+
+//   // 3️⃣ Avg response time
+//   const responses = await Response.find({ sessionId }).lean();
+//   const avgResponseTime = avg(responses.map(r => r.responseTimeInSeconds).filter(Number));
+
+//   // 4️⃣ Events
+//   const events = await Event.find({ sessionId }).lean();
+
+//   // 5️⃣ Build prompt
+//   const prompt = buildSummaryPrompt({
+//     feedbacks,
+//     responses,
+//     events,
+//     timingAvg,
+//     toneAvg,
+//     pedagogyAvg,
+//     overallAvg,
+//     avgResponseTime
+//   });
+
+//   console.log("📌 [SUMMARY] GPT Prompt sent:\n", prompt);
+
+//   // 6️⃣ GPT CALL
+//   const gptRes = await client.chat.completions.create({
+//     model: "gpt-4o-mini",
+//     messages: [
+//       { role: "system", content: "You summarize a teacher's performance in a pedagogical simulation. This means you summarize all the feedback from that simulation." },
+//       { role: "user", content: prompt }
+//     ]
+//   });
+
+//   console.log("📌 [SUMMARY] GPT Raw Response:\n", gptRes.choices[0].message.content);
+
+// let raw = gptRes.choices[0].message.content || "";
+
+// // 🧹 Remove markdown code fences
+// raw = raw.replace(/```json/gi, "")
+//          .replace(/```/g, "")
+//          .trim();
+
+// console.log("📌 [SUMMARY] Cleaned GPT Response:", raw);
+
+// let analysis;
+// try {
+//   analysis = JSON.parse(raw);
+// } catch (e) {
+//   console.error("❌ Failed to parse GPT response:", e, "\nRaw:", raw);
+//   throw new Error("GPT summary JSON malformed");
+// }
+
+//   // 7️⃣ SAVE SUMMARY
+//   const summary = await Summary.create({
+//     sessionId,
+//     overallAvg,
+//     timingAvg,
+//     toneAvg,
+//     pedagogyAvg,
+//     avgResponseTime,
+//     strength: analysis.strength,
+//     weakness: analysis.weakness
+//   });
+
+//   console.log("✅ [SUMMARY] Final saved summary:\n", summary);
+
+//   return summary;
+// }
+
+// function avg(arr) {
+//   if (!arr.length) return null;
+//   return Number((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2));
+// }
+
+// function buildSummaryPrompt(data) {
+//   return `
+//  Session data:
+// - overall average: ${data.overallAvg}
+// - timing average: ${data.timingAvg}
+// - tone average: ${data.toneAvg}
+// - pedagogy average: ${data.pedagogyAvg}
+// - response time average: ${data.avgResponseTime}
+
+// Feedback:
+// ${JSON.stringify(data.feedbacks, null, 2)}
+
+// Teacher responses:
+// ${JSON.stringify(data.responses, null, 2)}
+
+// Interruptions:
+// ${JSON.stringify(data.events, null, 2)}
+
+// Instructions:
+// Return JSON:
+// {
+// "strength": "…",
+// "weakness": "…"
+// `;
+// }
+
+// module.exports = { generateSessionSummary };
+
 // server/src/services/summaryGenerator.service.js
 const Feedback = require("../models/Feedback");
 const Response = require("../models/Response");
@@ -33,7 +160,7 @@ async function generateSessionSummary(sessionId) {
   // 4️⃣ Events
   const events = await Event.find({ sessionId }).lean();
 
-  // 5️⃣ Build prompt
+  // 5️⃣ Build prompt — NOW IN HEBREW
   const prompt = buildSummaryPrompt({
     feedbacks,
     responses,
@@ -47,33 +174,35 @@ async function generateSessionSummary(sessionId) {
 
   console.log("📌 [SUMMARY] GPT Prompt sent:\n", prompt);
 
-  // 6️⃣ GPT CALL
+  // 6️⃣ GPT CALL — *instructions now in Hebrew*
   const gptRes = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: "You summarize a teacher's performance in a pedagogical simulation. This means you summarize all the feedback from that simulation." },
+      {
+        role: "system",
+        content:
+          "אתה מנתח ביצועי מורה בסימולציה פדגוגית. עליך לסכם בצורה מקצועית וברורה את כלל המשובים, האירועים והתגובות. הסיכום צריך להיות בעברית ברורה ועניינית."
+      },
       { role: "user", content: prompt }
     ]
   });
 
   console.log("📌 [SUMMARY] GPT Raw Response:\n", gptRes.choices[0].message.content);
 
-let raw = gptRes.choices[0].message.content || "";
+  let raw = gptRes.choices[0].message.content || "";
 
-// 🧹 Remove markdown code fences
-raw = raw.replace(/```json/gi, "")
-         .replace(/```/g, "")
-         .trim();
+  // 🧹 Remove ```json … ```
+  raw = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
 
-console.log("📌 [SUMMARY] Cleaned GPT Response:", raw);
+  console.log("📌 [SUMMARY] Cleaned GPT Response:", raw);
 
-let analysis;
-try {
-  analysis = JSON.parse(raw);
-} catch (e) {
-  console.error("❌ Failed to parse GPT response:", e, "\nRaw:", raw);
-  throw new Error("GPT summary JSON malformed");
-}
+  let analysis;
+  try {
+    analysis = JSON.parse(raw);
+  } catch (e) {
+    console.error("❌ Failed to parse GPT response:", e, "\nRaw:", raw);
+    throw new Error("GPT summary JSON malformed");
+  }
 
   // 7️⃣ SAVE SUMMARY
   const summary = await Summary.create({
@@ -97,30 +226,36 @@ function avg(arr) {
   return Number((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2));
 }
 
+/** PROMPT IN HEBREW */
 function buildSummaryPrompt(data) {
   return `
- Session data:
-- overall average: ${data.overallAvg}
-- timing average: ${data.timingAvg}
-- tone average: ${data.toneAvg}
-- pedagogy average: ${data.pedagogyAvg}
-- response time average: ${data.avgResponseTime}
+נתוני השיעור:
+- ציון כללי ממוצע: ${data.overallAvg}
+- תזמון ממוצע: ${data.timingAvg}
+- טון דיבור ממוצע: ${data.toneAvg}
+- פדגוגיה ממוצעת: ${data.pedagogyAvg}
+- זמן תגובה ממוצע: ${data.avgResponseTime}
 
-Feedback:
+משובים:
 ${JSON.stringify(data.feedbacks, null, 2)}
 
-Teacher responses:
+תגובות המורה:
 ${JSON.stringify(data.responses, null, 2)}
 
-Interruptions:
+אירועי הפרעות:
 ${JSON.stringify(data.events, null, 2)}
 
-Instructions:
-Return JSON:
+הוראות:
+נא ליצור סיכום מקצועי בעברית הכולל:
+1. "strength" — פסקה קצרה המתארת את החוזקות של המורה.
+2. "weakness" — פסקה קצרה המתארת את נקודות החולשה והדברים לשיפור.
+
+החזר אך ורק JSON בפורמט:
 {
-"strength": "…",
-"weakness": "…"
-`;
+"strength": "טקסט בעברית…",
+"weakness": "טקסט בעברית…"
+}
+`.trim();
 }
 
 module.exports = { generateSessionSummary };

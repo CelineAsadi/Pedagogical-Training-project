@@ -7,6 +7,8 @@
   align-items: center;
   justify-content: center;
   z-index: 2000;
+  direction: rtl; /* ← RTL */
+  text-align: right; /* ← Align text to right */
 }
 
 /* ===== POPUP WINDOW ===== */
@@ -22,12 +24,14 @@
   box-shadow: 0px 12px 35px rgba(0,0,0,0.16);
   animation: fadeIn 0.25s ease-out;
   font-family: "Inter", sans-serif;
+  direction: rtl;     /* ← כל התוכן יהיה RTL */
+  text-align: right;  /* ← יישור לימין */
 }
 
 /* Close button */
 .summary-close {
   position: absolute;
-  right: 18px;
+  left: 18px; /* ← היה right, עכשיו left */
   top: 12px;
   background: none;
   border: none;
@@ -55,13 +59,16 @@
   padding: 16px 20px;
   border-radius: 10px;
   margin-bottom: 20px;
-  border-left: 4px solid #4e8cff;
+
+  border-right: 4px solid #4e8cff; /* ← היה left, עכשיו right */
+  border-left: none;
 }
 
 .summary-section h3 {
   margin-top: 0;
   color: #2d4f8b;
   font-size: 20px;
+  text-align: right;
 }
 
 /* ===== GRAPH WRAPPER ===== */
@@ -78,6 +85,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
+  direction: ltr; /* ← הגרף עצמו ל-LTR כדי שלא יתבלגן */
 }
 
 /* Tooltip text */
@@ -86,6 +95,8 @@
   background: white !important;
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  direction: rtl;
+  text-align: right;
 }
 
 /* Fade animation */
