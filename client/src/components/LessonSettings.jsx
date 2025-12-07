@@ -90,7 +90,6 @@ const LessonSettings = () => {
           <li><Link to="/simulation">My Simulation</Link></li>
           <li><Link to="/Profile">Profile</Link></li>
           <li><button className="logout-btn" onClick={logout}>Logout</button></li>
-          <li><Link to="/lang">🌐 ENG</Link></li>
         </ul>
       </nav>
 

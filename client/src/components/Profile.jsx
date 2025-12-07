@@ -103,7 +103,6 @@ const Profile = () => {
           <li>
             <button className="logout-btn" onClick={handleLogout}>Logout</button>
           </li>
-          <li><Link to="/lang">🌐 ENG</Link></li>
         </ul>
       </nav>
 

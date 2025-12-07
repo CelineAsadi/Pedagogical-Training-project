@@ -118,7 +118,6 @@ export default function MySimulations() {
           <li><Link to="/MySimulations">My Simulation</Link></li>
           <li><Link to="/Profile">Profile</Link></li>
           <li><button className="logout-btn" onClick={handleLogout}>Logout</button></li>
-          <li><Link to="/lang">🌐 ENG</Link></li>
         </ul>
       </nav>
 
