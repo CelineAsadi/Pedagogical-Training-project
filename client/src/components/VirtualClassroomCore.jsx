@@ -433,8 +433,13 @@ useEffect(() => {
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
-          socketRef.current?.emit("lesson:stop", { sessionId });
           clearInterval(timerRef.current);
+          // עצירת הסשן בשרת
+      socketRef.current?.emit("lesson:stop", { sessionId });
+
+      // 🟦 כאן אנו מפעילים את כפתור END אוטומטית
+      handleStop();
+
           setStarted(false);
           return 0;
         }
