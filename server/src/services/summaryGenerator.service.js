@@ -135,32 +135,126 @@ const OpenAI = require("openai");
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /** Build Summary for one session */
+// async function generateSessionSummary(sessionId) {
+//   console.log("📌 [SUMMARY] Starting summary generation for session:", sessionId);
+
+//   // 1️⃣ Get all feedbacks
+//   const feedbacks = await Feedback.find({ sessionId }).lean();
+//   console.log("📌 [SUMMARY] Loaded feedback documents:", feedbacks.length);
+
+//   if (feedbacks.length === 0) {
+//     console.log("❌ [SUMMARY] No feedbacks found → stopping");
+//     throw new Error("No feedbacks for summary");
+//   }
+
+//   // 2️⃣ Averages
+//   const timingAvg = avg(feedbacks.map(f => f.scoring?.timing).filter(Number));
+//   const toneAvg = avg(feedbacks.map(f => f.scoring?.tone).filter(Number));
+//   const pedagogyAvg = avg(feedbacks.map(f => f.scoring?.pedagogy).filter(Number));
+//   const overallAvg = avg(feedbacks.map(f => f.scoring?.overall).filter(Number));
+
+//   // 3️⃣ Avg response time
+//   const responses = await Response.find({ sessionId }).lean();
+//   const avgResponseTime = avg(responses.map(r => r.responseTimeInSeconds).filter(Number));
+
+//   // 4️⃣ Events
+//   const events = await Event.find({ sessionId }).lean();
+
+//   // 5️⃣ Build prompt — NOW IN HEBREW
+//   const prompt = buildSummaryPrompt({
+//     feedbacks,
+//     responses,
+//     events,
+//     timingAvg,
+//     toneAvg,
+//     pedagogyAvg,
+//     overallAvg,
+//     avgResponseTime
+//   });
+
+//   console.log("📌 [SUMMARY] GPT Prompt sent:\n", prompt);
+
+//   // 6️⃣ GPT CALL — *instructions now in Hebrew*
+//   const gptRes = await client.chat.completions.create({
+//     model: "gpt-4o-mini",
+//     messages: [
+//       {
+//         role: "system",
+//         content:
+//           "אתה מנתח ביצועי מורה בסימולציה פדגוגית. עליך לסכם בצורה מקצועית וברורה את כלל המשובים, האירועים והתגובות. הסיכום צריך להיות בעברית ברורה ועניינית."
+//       },
+//       { role: "user", content: prompt }
+//     ]
+//   });
+
+//   console.log("📌 [SUMMARY] GPT Raw Response:\n", gptRes.choices[0].message.content);
+
+//   let raw = gptRes.choices[0].message.content || "";
+
+//   // 🧹 Remove ```json … ```
+//   raw = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+//   console.log("📌 [SUMMARY] Cleaned GPT Response:", raw);
+
+//   let analysis;
+//   try {
+//     analysis = JSON.parse(raw);
+//   } catch (e) {
+//     console.error("❌ Failed to parse GPT response:", e, "\nRaw:", raw);
+//     throw new Error("GPT summary JSON malformed");
+//   }
+
+//   // 7️⃣ SAVE SUMMARY
+//   const summary = await Summary.create({
+//     sessionId,
+//     overallAvg,
+//     timingAvg,
+//     toneAvg,
+//     pedagogyAvg,
+//     avgResponseTime,
+//     strength: analysis.strength,
+//     weakness: analysis.weakness
+//   });
+
+//   console.log("✅ [SUMMARY] Final saved summary:\n", summary);
+
+//   return summary;
+// }
+
+/** Build Summary for one session */
 async function generateSessionSummary(sessionId) {
   console.log("📌 [SUMMARY] Starting summary generation for session:", sessionId);
 
-  // 1️⃣ Get all feedbacks
   const feedbacks = await Feedback.find({ sessionId }).lean();
-  console.log("📌 [SUMMARY] Loaded feedback documents:", feedbacks.length);
+  const responses = await Response.find({ sessionId }).lean(); // 👈 חשוב
+  const events = await Event.find({ sessionId }).lean();
 
-  if (feedbacks.length === 0) {
-    console.log("❌ [SUMMARY] No feedbacks found → stopping");
-    throw new Error("No feedbacks for summary");
+  // 🟦 1) אם אין תגובות מורה — מחזירים סיכום עם אפסים וחולשה בלבד
+  if (responses.length === 0) {
+    console.log("⚠️ No teacher responses found → generating zero-summary");
+
+    const summary = await Summary.create({
+      sessionId,
+      overallAvg: 0,
+      timingAvg: 0,
+      toneAvg: 0,
+      pedagogyAvg: 0,
+      avgResponseTime: 0,
+      strength: "",   // אין חוזקות
+      weakness: "לא נמסרו תגובות מורה במהלך השיעור ולכן לא ניתן להעריך ביצועים."
+    });
+
+    return summary;
   }
 
-  // 2️⃣ Averages
+  // 🟦 2) המשך רגיל — יש תגובות ולכן מחשבים ממוצעים
   const timingAvg = avg(feedbacks.map(f => f.scoring?.timing).filter(Number));
   const toneAvg = avg(feedbacks.map(f => f.scoring?.tone).filter(Number));
   const pedagogyAvg = avg(feedbacks.map(f => f.scoring?.pedagogy).filter(Number));
   const overallAvg = avg(feedbacks.map(f => f.scoring?.overall).filter(Number));
-
-  // 3️⃣ Avg response time
-  const responses = await Response.find({ sessionId }).lean();
   const avgResponseTime = avg(responses.map(r => r.responseTimeInSeconds).filter(Number));
 
-  // 4️⃣ Events
-  const events = await Event.find({ sessionId }).lean();
-
-  // 5️⃣ Build prompt — NOW IN HEBREW
+  // 🔥 יצירת prompt ובקשה ל-GPT כמו שהיה קודם
   const prompt = buildSummaryPrompt({
     feedbacks,
     responses,
@@ -172,39 +266,23 @@ async function generateSessionSummary(sessionId) {
     avgResponseTime
   });
 
-  console.log("📌 [SUMMARY] GPT Prompt sent:\n", prompt);
-
-  // 6️⃣ GPT CALL — *instructions now in Hebrew*
   const gptRes = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
         content:
-          "אתה מנתח ביצועי מורה בסימולציה פדגוגית. עליך לסכם בצורה מקצועית וברורה את כלל המשובים, האירועים והתגובות. הסיכום צריך להיות בעברית ברורה ועניינית."
+          "אתה מנתח ביצועי מורה בסימולציה פדגוגית. עליך לסכם בצורה מקצועית וברורה את כלל המשובים."
       },
       { role: "user", content: prompt }
     ]
   });
 
-  console.log("📌 [SUMMARY] GPT Raw Response:\n", gptRes.choices[0].message.content);
-
   let raw = gptRes.choices[0].message.content || "";
-
-  // 🧹 Remove ```json … ```
   raw = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
 
-  console.log("📌 [SUMMARY] Cleaned GPT Response:", raw);
+  const analysis = JSON.parse(raw);
 
-  let analysis;
-  try {
-    analysis = JSON.parse(raw);
-  } catch (e) {
-    console.error("❌ Failed to parse GPT response:", e, "\nRaw:", raw);
-    throw new Error("GPT summary JSON malformed");
-  }
-
-  // 7️⃣ SAVE SUMMARY
   const summary = await Summary.create({
     sessionId,
     overallAvg,
@@ -216,10 +294,9 @@ async function generateSessionSummary(sessionId) {
     weakness: analysis.weakness
   });
 
-  console.log("✅ [SUMMARY] Final saved summary:\n", summary);
-
   return summary;
 }
+
 
 function avg(arr) {
   if (!arr.length) return null;
