@@ -497,7 +497,7 @@ useEffect(() => {
 
           {/* כפתור בדיקה ישן – עדיין משתמש ב־speechSynthesis של הדפדפן
               אם תרצי – אפשר אחר כך להפוך גם אותו ל־playTTSAudio */}
-          <button
+          {/* <button
             onClick={() => {
               if (!("speechSynthesis" in window)) {
                 console.warn("SpeechSynthesis not supported");
@@ -512,7 +512,7 @@ useEffect(() => {
             className="vc-test-voice-btn"
           >
             🔊 Test Voice
-          </button>
+          </button> */}
 
           <span>{started ? "● Recording (Simulation)" : "Inactive"}</span>
         </div>
@@ -593,10 +593,10 @@ useEffect(() => {
 
         <hr />
 
-        <h3>🎚️ Teacher Voice Snapshot (debug):</h3>
+        {/* <h3>🎚️ Teacher Voice Snapshot (debug):</h3>
         <p>Volume: {voiceFeatures.volume.toFixed(3)}</p>
         <p>Pitch: {voiceFeatures.pitch.toFixed(3)}</p>
-        <p>Tone: {voiceFeatures.tone}</p>
+        <p>Tone: {voiceFeatures.tone}</p> */}
       </div>
 
       {isSidebarOpen && (
