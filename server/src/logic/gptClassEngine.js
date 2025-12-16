@@ -346,22 +346,7 @@ async function decideNextDisruptions(sessionId, runtimeState = {}) {
 
   const totalWords = totalTeacherText.split(/\s+/).filter(Boolean).length;
 
-  // חסם – לא מייצרים הפרעות לפני שהמורה באמת דיברה קצת
-  // if (totalWords < 4 || teacherEvents.length < 1) {
-    
-  //   console.log(
-  //     "[Guard] Too little teacher speech yet (words:",
-  //     totalWords,
-  //     ", teacherEvents:",
-  //     teacherEvents.length,
-  //     ") → forcing no disruptions this round."
-  //   );
-
-  //   return {
-  //     actions: [],
-  //     nextCheckInSeconds: 6,
-  //   };
-  // }
+  
 
  if (sessionMeta.elapsedSeconds < 40 && teacherEvents.length === 0) {
   console.log(

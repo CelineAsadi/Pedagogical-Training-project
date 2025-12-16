@@ -1631,59 +1631,8 @@ ${JSON.stringify(classContextSnapshot, null, 2)}
  * 🔙 פונקציית helper ישנה – מייצרת משפט אחד לתלמיד בודד
  * עדיין אפשר להשתמש בה אם תרצי רק "משפט אחד" בלי לוגיקה חכמה.
  */
-async function generateDisruptionUtterance({ student, lessonTopic, label }) {
-  const behavior = student.behaviorProfile || "neutral";
-  const name = student.name || "תלמיד";
-  const topic = lessonTopic || "נושא לא מוגדר";
-
-  const systemPrompt = `
-אתה תלמיד/ה בכיתה בישראל.
-תפקידך לייצר משפט הפרעה קצר (עד 12 מילים) בעברית מדוברת, בהקשר לשיעור.
-
-- אל תוסיף הסברים.
-- תחזיר רק את המשפט שהילד אומר, בלי גרשיים, בלי "התלמיד אומר".
-- סגנון לפי פרופיל:
-  - attentive (קשוב): שאלת הבהרה או בלבול עדין.
-  - talker (מדבר): מסיח דעת, מדבר עם חבר.
-  - defiant (מתנגד): התנגדות, חוסר שיתוף פעולה.
-  - sensitive (רגיש): נפגע, רגיש לטון.
-  - withdrawn (מסתגר): קצר, נמנע, לא רוצה לענות.
-  - conflicts (קונפליקטים): ויכוח עם אחרים.
-  - sarcastic (סרקסטי): ציניות, הערה עוקצנית.
-  - hyperactive (היפראקטיבי): קופצני, חסר מנוחה.
-`;
-
-  const userPrompt = `
-שם התלמיד/ה: ${name}
-פרופיל התנהגות: ${behavior}
-תווית: ${label}
-נושא השיעור: ${topic}
-
-כתוב משפט אחד של התלמיד שמתאים לפרופיל הזה ולנושא.
-`.trim();
-
-  const response = await client.responses.create({
-    model: "gpt-4o-mini",
-    input: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    max_output_tokens: 60,
-  });
-
-  const first = response.output?.[0]?.content?.[0];
-  let out = "";
-
-  if (typeof first?.text === "string") {
-    out = first.text;
-  } else if (first?.text?.value) {
-    out = first.text.value;
-  }
-
-  return (out || "").trim();
-}
 
 module.exports = {
   decideDisruptions,
-  generateDisruptionUtterance,
+  
 };
