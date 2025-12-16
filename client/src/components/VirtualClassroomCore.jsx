@@ -274,6 +274,17 @@ useEffect(() => {
   const timerRef = useRef(null);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
+const behaviorMap = {
+  attentive: "קשוב",
+  talker: "פטפטן",
+  defiant: "מרדן",
+  sensitive: "רגיש",
+  withdrawn: "מופנם",
+  conflicts: "יוצר קונפליקטים",
+  sarcastic: "ציני",
+  hyperactive: "היפראקטיבי",
+  neutral: "ניטרלי",
+};
 
   const { features: voiceFeatures } = useTeacherVoiceAnalysis({
     enabled: started,
@@ -306,7 +317,7 @@ useEffect(() => {
       );
 
       console.log("✅ [DEBUG] Server response:", res.data);
-      addTeacherResponse(res.data);
+      addTeacherResponse(res.data);//save 
     } catch (err) {
       console.error("❌ [DEBUG] Error saving teacher response:", err);
     }
@@ -492,7 +503,7 @@ useEffect(() => {
             disabled={started}
             className={`vc-start-btn ${started ? "disabled" : "enabled"}`}
           >
-            START
+            התחלת סימולציה
           </button>
 
           {/* כפתור בדיקה ישן – עדיין משתמש ב־speechSynthesis של הדפדפן
@@ -514,27 +525,27 @@ useEffect(() => {
             🔊 Test Voice
           </button> */}
 
-          <span>{started ? "● Recording (Simulation)" : "Inactive"}</span>
+          <span>{started ? "● הקלטה פעילה (סימולציה)" : "לא פעיל"}</span>
         </div>
 
         <button onClick={handleStop} className="vc-stop-btn">
-          ⛔ END
+          ⛔ סיום
         </button>
 
         <div className="vc-class-box">
-          <span>Class:</span>
+      <span>כיתה:</span>
           <span>{config?.className}</span>
-          <span style={{ marginLeft: "15px" }}>🧠 Topic:</span>
+          <span style={{ marginLeft: "15px" }}>🧠נושא:</span>
           <span>{config?.lessonTopic || "—"}</span>
         </div>
 
         <div>
-          TIME ⏱ :{" "}
+         זמן ⏱ :{" "}
           {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:
           {String(timeLeft % 60).padStart(2, "0")}
         </div>
 
-        <div>{isRecording ? "🎤 Mic Active" : "🔇 Mic Off"}</div>
+    <div>{isRecording ? "🎤 מיקרופון פעיל" : "🔇 מיקרופון כבוי"}</div>
 
         <button
           className="vc-hamburger"
@@ -567,27 +578,28 @@ useEffect(() => {
         >
           ×
         </button>
-        <h2>📘 Class Details</h2>
+    <h2>📘 פרטי הכיתה</h2>
         <p>
-          <strong>Name:</strong> {config?.className}
+          <strong>שם הכיתה :</strong> {config?.className}
         </p>
         <p>
-          <strong>Class Topic:</strong> {config?.lessonTopic}</p>
+          <strong>נושא השיעור :</strong> {config?.lessonTopic}</p>
         <p>
-          <strong>Duration:</strong> {config?.duration} min
+          <strong>משך השיעור :</strong> {config?.duration} min
         </p>
         <p>
-          <strong>Total Students:</strong> {config?.classSize}
+          <strong>סה"כ תלמידים :</strong> {config?.classSize}
         </p>
 
         <hr />
 
-        <h3>👩‍🏫 Students in Class:</h3>
+    <h3>👩‍🏫 תלמידים בכיתה:</h3>
         <ul>
           {useClassroomStore.getState().students.map((s) => (
             <li key={s.id}>
-              <strong>{s.name}</strong> – {s.behaviorProfile}
-            </li>
+  <strong>{s.name}</strong> – {behaviorMap[s.behaviorProfile] || s.behaviorProfile}
+</li>
+
           ))}
         </ul>
 

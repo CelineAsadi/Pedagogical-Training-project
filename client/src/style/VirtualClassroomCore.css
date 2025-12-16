@@ -73,6 +73,9 @@
   cursor: pointer;
   margin-right: 15px;
 }
+.vc-container {
+  direction: rtl;
+}
 
 /* Sidebar Panel */
 .sidebar {
@@ -89,7 +92,7 @@
 }
 
 .sidebar.open {
-  right: 0;
+  left: 0;
 }
 
 .sidebar h2 {

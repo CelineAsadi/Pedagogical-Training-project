@@ -8,7 +8,11 @@
   display: flex;
   gap: 25px;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 20px;direction: rtl;
+}
+.lesson-page {
+  
+  text-align: right;
 }
 
 .settings-card {
@@ -17,7 +21,8 @@
   padding: 25px;
   border-radius: 16px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  text-align: left;
+   text-align: right;
+
 }
 
 .settings-card h3 {
@@ -85,4 +90,8 @@
 .btn-save:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 15px rgba(0, 86, 179, 0.3);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

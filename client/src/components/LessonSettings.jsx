@@ -18,28 +18,41 @@ const LessonSettings = () => {
   const [classSize, setClassSize] = useState(5);
   const [duration, setDuration] = useState(5);
   const [className, setClassName] = useState("");
+const STUDENT_TYPES = [
+  { label: "קשוב", value: "attentive" },
+  { label: "פטפטן", value: "talker" },
+  { label: "מרדן", value: "defiant" },
+  { label: "רגיש", value: "sensitive" },
+  { label: "מופנם", value: "withdrawn" },
+  { label: "יוצר קונפליקטים", value: "conflicts" },
+  { label: "ציני", value: "sarcastic" },
+  { label: "היפראקטיבי", value: "hyperactive" },
+  { label: "ניטרלי", value: "neutral" },
+];
 
-  const [studentTypes, setStudentTypes] = useState([
-    { name: "Attentive", count: 0 },
-    { name: "Talker", count: 0 },
-    { name: "Defiant", count: 0 },
-    { name: "Sensitive", count: 0 },
-    { name: "Withdrawn", count: 0 },
-    { name: "Conflicts", count: 0 },
-    { name: "Sarcastic", count: 0 },
-    { name: "Hyperactive", count: 0 },
-    { name: "Neutral", count: 0 },
-  ]);
+  const [studentTypes, setStudentTypes] = useState(
+   STUDENT_TYPES.map(t => ({
+    ...t,
+    count: 0,
+  }))
+ );
 
   const totalStudents = studentTypes.reduce((sum, t) => sum + t.count, 0);
 
   const updateCount = (index, delta) => {
-    const updated = [...studentTypes];
-    const newValue = updated[index].count + delta;
-    if (newValue < 0) return;
-    updated[index].count = newValue;
-    setStudentTypes(updated);
-  };
+  const updated = [...studentTypes];
+  const newValue = updated[index].count + delta;
+
+  // לא יורדים מתחת ל־0
+  if (newValue < 0) return;
+
+  // אם מנסים להוסיף (+) ועברנו את גודל הכיתה – נחסום
+  if (delta > 0 && totalStudents >= classSize) return;
+
+  updated[index].count = newValue;
+  setStudentTypes(updated);
+};
+
 
   useEffect(() => {
     fetchUserData(setUser);
@@ -61,8 +74,10 @@ const LessonSettings = () => {
     const success = await saveLessonSettings({
       classSize,
       duration,
-      studentTypes,
-      className,
+studentTypes: studentTypes.map(t => ({
+    name: t.value,   // 👈 אנגלית בלבד למסד ול-AI
+    count: t.count,
+  })),      className,
       lessonTopic,
     });
 
@@ -95,17 +110,17 @@ const LessonSettings = () => {
 
       {/* Page Content */}
       <div className="lesson-settings">
-        <h2>Lesson Settings</h2>
+        <h2>הגדרות השיעור</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="settings-grid">
             
             {/* Left card */}
             <div className="settings-card">
-              <h3>General</h3>
+              <h3>כללי</h3>
 
               <div className="form-group">
-                <label>Class Name</label>
+                <label>שם הכיתה</label>
                 <input
                   type="text"
                   value={className}
@@ -114,7 +129,7 @@ const LessonSettings = () => {
               </div>
 
               <div className="form-group">
-                <label>Class Size (5–15)</label>
+                <label>גודל הכיתה (5–15)</label>
                 <input
                   type="number"
                   min="5"
@@ -125,7 +140,7 @@ const LessonSettings = () => {
               </div>
 
               <div className="form-group">
-                <label>Lesson Duration (5–10 min)</label>
+                <label>זמן השיעור (5–10 דקות)</label>
                 <input
                   type="number"
                   min="5"
@@ -136,22 +151,40 @@ const LessonSettings = () => {
               </div>
 
               <div className="total-row">
-                <strong>Total Students:</strong> {totalStudents} / {classSize}
+                <strong>סה"כ תלמידים:</strong> {totalStudents} / {classSize}
               </div>
 
-              <button type="submit" className="btn-save">Save Settings</button>
+              <button type="submit" className="btn-save">Save</button>
             </div>
 
             {/* Right card */}
             <div className="settings-card">
-              <h3>Student Types</h3>
+              <h3>סוגי תלמידים</h3>
               {studentTypes.map((type, i) => (
                 <div key={i} className="type-row">
-                  <span className="type-name">{type.name}</span>
+<span className="type-name">{type.label}</span>
                   <div className="counter">
+                 <button
+                      type="button"
+                      disabled={type.count === 0}
+                      onClick={() => updateCount(i, -1)}
+                    >
+                      -
+                    </button>
+
+                    <span>{type.count}</span>
+
+                    <button
+                      type="button"
+                      disabled={totalStudents >= classSize}
+                      onClick={() => updateCount(i, +1)}
+                    >
+                      +
+                    </button>
+                    {/* 
                     <button type="button" onClick={() => updateCount(i, -1)}>-</button>
                     <span>{type.count}</span>
-                    <button type="button" onClick={() => updateCount(i, +1)}>+</button>
+                    <button type="button" onClick={() => updateCount(i, +1)}>+</button> */}
                   </div>
                 </div>
               ))}

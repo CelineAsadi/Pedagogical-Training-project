@@ -53,15 +53,15 @@ export function useClassroomConfig(type = "basic") {
         let topicFromServer = lessonData?.lessonTopic || "";
 
         studentTypesData = [
-          { name: "Attentive", count: 3 },
-          { name: "Talker", count: 2 },
-          { name: "Defiant", count: 2 },
-          { name: "Sensitive", count: 2 },
-          { name: "Withdrawn", count: 2 },
-          { name: "Conflicts", count: 1 },
-          { name: "Sarcastic", count: 1 },
-          { name: "Hyperactive", count: 1 },
-          { name: "Neutral", count: 1 },
+        { name: "Attentive", count: 3 },
+        { name: "Talker", count: 2 },
+        { name: "Defiant", count: 2 },
+        { name: "Sensitive", count: 2 },
+        { name: "Withdrawn", count: 2 },
+        { name: "Conflicts", count: 1 },
+        { name: "Sarcastic", count: 1 },
+        { name: "Hyperactive", count: 1 },
+        { name: "Neutral", count: 1 },
         ];
 
         // אם אין lessonData בכלל – נבנה אחד בסיסי
@@ -119,41 +119,41 @@ export function useClassroomConfig(type = "basic") {
 
       // ===== 4) בניית רשימת תלמידים עם שמות/מגדר/כיסאות =====
 
-      // ✅ English name lists (15 boys + 15 girls)
+      // ✅ hebrew name lists (15 boys + 15 girls)
       const maleNames = [
-        "Adam",
-        "Ben",
-        "Daniel",
-        "Eli",
-        "Tom",
-        "Lior",
-        "Noam",
-        "Omer",
-        "David",
-        "Yoni",
-        "Liam",
-        "Josh",
-        "Aaron",
-        "Ethan",
-        "Sam",
+            "יואב",
+            "איתי",
+            "נועם",
+            "אורי",
+            "עומר",
+            "דניאל",
+            "אדם",
+            "יונתן",
+            "אלון",
+            "רון",
+            "ליאור",
+            "מוחמד",
+            "אריאל",
+            "תומר",
+            "אופק",
       ];
 
       const femaleNames = [
-        "Sara",
-        "Lia",
-        "Noa",
-        "Maya",
-        "Dana",
-        "Roni",
-        "Tamar",
-        "Yael",
-        "Hila",
-        "Neta",
-        "Emma",
-        "Olivia",
-        "Sophia",
-        "Ava",
-        "Isabella",
+          "ריתאל",
+          "מאיה",
+          "יעל",
+          "תמר",
+          "סילין",
+          "ענוד",
+          "דנה",
+          "שובל",
+          "הדר",
+          "לוסין",
+          "אופיר",
+          "ליה",
+          "שילי",
+          "טל",
+          "נור",
       ];
 
       // ✅ Function to get a unique name
