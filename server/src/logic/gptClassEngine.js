@@ -70,7 +70,7 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
   for (const resp of responses) {
     timeline.push({
       kind: "teacher_turn",
-      eventId: resp.eventId || null,
+      //eventId: resp.eventId || null,
       //studentId: resp.studentId || null,
       teacherText: resp.teacherText,
       responseTimeInSeconds: resp.responseTimeInSeconds,
@@ -127,9 +127,21 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
     }));
 
   // ---------- Recent Events ----------
+  let lastStudentDisruptionTime = null;
+  let lastTeacherSpeechTime = null;
+
   const MAX_RECENT = 40;
   const recentEvents = timeline.slice(-MAX_RECENT).map((item) => {
-    if (item.kind === "student_event") {
+    if (item.kind === "student_event"  && item.eventType === "disruption") {
+     const studentTime = new Date(item.at);
+
+  const secondsFromLastTeacherSpeech =
+    lastTeacherSpeechTime
+      ? Math.floor((studentTime - lastTeacherSpeechTime) / 1000)
+      : null;
+
+  lastStudentDisruptionTime = studentTime;
+
       return {
         type: "student_disruption",
         timestamp: item.at,
@@ -138,21 +150,50 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
         meta: {
           eventType: item.eventType,
           status: item.status,
+           behaviorProfile: item.behaviorProfile || null, // 👈 חשוב
+            secondsFromLastTeacherSpeech, // ✅ זה מה שחסר
         },
       };
     }
+   if (item.kind === "student_event") {
+  const studentTime = new Date(item.at);
+
+  const secondsFromLastTeacherSpeech =
+    lastTeacherSpeechTime
+      ? Math.floor((studentTime - lastTeacherSpeechTime) / 1000)
+      : null;
+
+  return {
+    type: "student_question",
+    timestamp: item.at,
+    studentId: item.studentId,
+    text: item.content,
+    meta: {
+      secondsFromLastTeacherSpeech, // ✅ גם כאן
+    },
+  };
+}
+
+
+     // teacher speech
+  const teacherTime = new Date(item.at);
+  lastTeacherSpeechTime = teacherTime;
+  const secondsFromLastDisruption =
+    lastStudentDisruptionTime
+      ? Math.floor((teacherTime - lastStudentDisruptionTime) / 1000)
+      : null;
 
     return {
-      type: item.studentId ? "teacher_response" : "teacher_speech",
+      type:  "teacher_speech",
       timestamp: item.at,
      // studentId: item.studentId || null,
       text: item.teacherText,
       meta: {
-        responseTimeInSeconds: item.responseTimeInSeconds,
+       secondsFromLastDisruption,
        // emotion: item.emotion,
         isGeneral: item.isGeneral,
         voiceFeatures: item.voiceFeatures,
-        replyToEventId: item.eventId,
+      
       },
     };
   });
@@ -161,7 +202,7 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
   let teacherStressLevelEstimate = null;
 
   const toneScores = recentEvents
-    .filter((ev) => ev.type === "teacher_response" && ev.meta.voiceFeatures)
+    .filter((ev) => ev.type === "teacher_speech" && ev.meta.voiceFeatures)
     .map((ev) => {
       const tone = ev.meta.voiceFeatures.tone?.toLowerCase() || "";
 
@@ -203,128 +244,15 @@ async function buildClassroomSnapshot(sessionId, runtimeState = {}) {
   };
 }
 
-/**
- * Main decision function
- */
-/**
- * 🧠 מחליט מה לעשות בסיבוב הבא של ההפרעות — ללא "הפרעה מאולצת"
- *     אבל עם לוגיקה שתאפשר להפרעות להתחיל באופן טבעי.
- */
-// async function decideNextDisruptions(sessionId, runtimeState = {}) {
-//   // ---------------------------------------------------------------
-//   // 1) BUILD SNAPSHOT
-//   // ---------------------------------------------------------------
-//   const snapshot = await buildClassroomSnapshot(sessionId, runtimeState);
-//   if (!snapshot) {
-//     console.warn("⚠️ Snapshot missing");
-//     return { actions: [], nextCheckInSeconds: 8 };
-//   }
-
-//   const elapsed = snapshot?.sessionMeta?.elapsedSeconds || 0;
-//   const recentEvents = snapshot?.recentEvents || [];
-
-//   const teacherHasSpoken = recentEvents.some(
-//     ev => ev.type === "teacher_speech" || ev.type === "teacher_response"
-//   );
-
-//   const lastStudentEvent = [...recentEvents].reverse().find(
-//     ev => ev.type === "student_disruption"
-//   );
-//   const hasAnyDisruptions = Boolean(lastStudentEvent);
-
-//   // ---------------------------------------------------------------
-//   // 2) NORMALIZE BEHAVIOR PROFILES
-//   // ---------------------------------------------------------------
-//   const validProfiles = [
-//     "attentive", "talker", "defiant", "sensitive",
-//     "withdrawn", "conflicts", "sarcastic", "hyperactive", "neutral"
-//   ];
-
-//   snapshot.students = snapshot.students.map(s => ({
-//     ...s,
-//     behaviorProfile: validProfiles.includes(s.behaviorProfile)
-//       ? s.behaviorProfile
-//       : "neutral",
-//   }));
-
-//   // ---------------------------------------------------------------
-//   // 3) GPT DECISION
-//   // ---------------------------------------------------------------
-//   let gptResult;
-//   try {
-//     gptResult = await decideDisruptions(snapshot);
-//   } catch (err) {
-//     console.error("❌ GPT disruption engine error:", err);
-//     return { actions: [], nextCheckInSeconds: 10 };
-//   }
-
-//   let disruptions = Array.isArray(gptResult?.disruptions)
-//     ? gptResult.disruptions
-//     : [];
-
-//   // ---------------------------------------------------------------
-//   // 4) ALLOW DISRUPTIONS EARLY IF CLASS IS SILENT
-//   // ---------------------------------------------------------------
-//   const allowEarlyDisruptions =
-//     (!teacherHasSpoken && !hasAnyDisruptions && elapsed > 5);
-
-//   const allowDisruptionBoost =
-//     (gptResult.globalDecision === "none" && allowEarlyDisruptions);
-
-//   if (allowDisruptionBoost && disruptions.length === 0) {
-//     const anyStudent = snapshot.students[0];
-//     if (anyStudent) {
-//       disruptions = [
-//         {
-//           studentId: anyStudent.id,
-//           behaviorProfile: anyStudent.behaviorProfile,
-//           type: "disruption",
-//           label: "מתלבט",
-//           utteranceText: "אממ… לא הבנתי מאיפה להתחיל."
-//         }
-//       ];
-//       console.log("✨ Boosted disruption because class is too quiet.");
-//     }
-//   }
-
-//   // ---------------------------------------------------------------
-//   // 5) MAP TO ACTIONS
-//   // ---------------------------------------------------------------
-//   const actions = disruptions.map((d, idx) => ({
-//     studentId: d.studentId,
-//     behavior: d.behaviorProfile || "neutral",
-//     label: d.label || "תלמיד",
-//     utteranceText: d.utteranceText || "",
-//     eventType: d.type === "question" ? "question" : "disruption",
-//     delayMs: idx * 350,
-//   }));
-
-//   // ---------------------------------------------------------------
-//   // 6) NEXT CHECK TIME
-//   // ---------------------------------------------------------------
-//   let nextCheckInSeconds = 6;
-
-//   switch (gptResult.globalDecision) {
-//     case "none":
-//       nextCheckInSeconds = 5 + Math.floor(Math.random() * 3); // 5–7
-//       break;
-//     case "single":
-//       nextCheckInSeconds = 4 + Math.floor(Math.random() * 2); // 4–5
-//       break;
-//     case "multi":
-//       nextCheckInSeconds = 6 + Math.floor(Math.random() * 4); // 6–9
-//       break;
-//   }
-
-//   return { actions, nextCheckInSeconds };
-// }
-
 async function decideNextDisruptions(sessionId, runtimeState = {}) {
   // ---------------------------------------------------------------
   // 1) BUILD SNAPSHOT
   // ---------------------------------------------------------------
   
   const snapshot = await buildClassroomSnapshot(sessionId, runtimeState);
+  console.log("🧠 SNAPSHOT SENT TO GPT:");
+console.dir(snapshot, { depth: null });
+
   const sessionMeta = snapshot.sessionMeta || {};
 
   if (!snapshot) {
@@ -337,7 +265,7 @@ async function decideNextDisruptions(sessionId, runtimeState = {}) {
 
   // ✏️ חישוב דיבור מורה (כמו שכבר עשינו קודם)
   const teacherEvents = recentEvents.filter(
-    (ev) => ev.type === "teacher_speech" || ev.type === "teacher_response"
+    (ev) => ev.type === "teacher_speech" 
   );
 
   const totalTeacherText = teacherEvents
