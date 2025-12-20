@@ -1,6 +1,9 @@
 import "../style/Home.css";
+import { useState } from "react";
 
 const Home = () => {
+    const [open, setOpen] = useState(false);
+
   return (
     <div>
       {/* Navbar */}
@@ -26,13 +29,35 @@ const Home = () => {
           </p>
         </div>
         <div className="hero-media">
-           <p>
-               Video Tutorial: How to Use Our Website
-           </p>
-          <video className="hero-video" controls>
-            <source src="/tutorial.mp4" type="video/mp4" /> 
-          </video>
+      <p>Video Tutorial: How to Use Our Website– Click on the video to watch</p>
+
+              <video 
+        className="preview-video"
+        src=""
+        controls
+        muted
+        preload="metadata"
+        poster=""
+        onClick={() => setOpen(true)}
+      ></video>
+
+
+
+      {/* Modal */}
+      {open && (
+        <div className="overlay">
+          <div className="video-modal">
+            <button className="close-btn" onClick={() => setOpen(false)}>
+              ✖
+            </button>
+
+            <video width="600" controls autoPlay>
+              <source src="/tutorial.mp4" type="video/mp4" />
+            </video>
+          </div>
         </div>
+      )}
+    </div>
       </section>
 
       {/* Features */}
