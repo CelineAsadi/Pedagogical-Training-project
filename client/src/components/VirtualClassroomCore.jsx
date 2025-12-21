@@ -398,7 +398,7 @@ const behaviorMap = {
             return next;
           });
           bubbleTimers.current.delete(payload.studentId);
-        }, 3000)
+        }, 4000)
       );
     });
 
