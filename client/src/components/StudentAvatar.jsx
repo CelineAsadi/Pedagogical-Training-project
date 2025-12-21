@@ -25,7 +25,7 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
     const skirts = ['#64748b', '#475569', '#374151'];
     const hairs = ['#2b2b2b', '#3a2a1f', '#1f1f1f', '#754c24', '#5c4033', '#3d2b1f'];
 
-    const isGirl = (student.gender || 'M') === 'F';
+    const isGirl = String(student.gender ) ?.toUpperCase()?.startsWith("F");
     return {
       isGirl,
       skin: skinTones[Math.floor(Math.random() * skinTones.length)],
@@ -33,9 +33,11 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
       bottom: (isGirl ? skirts : pantsB)[Math.floor(Math.random() * (isGirl ? skirts : pantsB).length)],
       hair: hairs[Math.floor(Math.random() * hairs.length)],
       height: isGirl ? 1.0 + Math.random() * 0.05 : 1.02 + Math.random() * 0.06,
-      hairStyle: isGirl ? (Math.random() < 0.5 ? 'bob' : 'ponytail') : 'short'
+      // hairStyle: isGirl ? (Math.random() < 0.5 ? 'bob' : 'ponytail') : 'short'
+      hairStyle: isGirl ? 'bob' : 'short'
+
     };
-  }, [student.id]);
+  }, [student.id,student.gender]);
 
   /* ===== Animations ===== */
   useFrame((state) => {

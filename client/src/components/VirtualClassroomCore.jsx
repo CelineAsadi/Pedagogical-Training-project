@@ -237,9 +237,9 @@ function HUDControls() {
         zIndex: 20,
       }}
     >
-      <Btn onClick={() => rotateSelected(-SNAP.rotateRad)}>↶ Rotate Left</Btn>
-      <Btn onClick={() => rotateSelected(SNAP.rotateRad)}>↷ Rotate Right</Btn>
-      <Btn onClick={faceFront}>Face Forward ⬆︎</Btn>
+      <Btn onClick={() => rotateSelected(-SNAP.rotateRad)}>↶ הזזה לשמאל </Btn>
+      <Btn onClick={() => rotateSelected(SNAP.rotateRad)}>↷ הזזה לימין </Btn>
+      <Btn onClick={faceFront}>קדימה ⬆︎</Btn>
     </div>
   );
 }

@@ -178,23 +178,43 @@ export function useClassroomConfig(type = "basic") {
           if (chairIndex >= chairs.length) break; // no more seats
 
           const seat = chairs[chairIndex];
-          const gender = Math.random() < 0.5 ? "F" : "M";
-          const name =
-            gender === "F"
-              ? getUniqueName(availableFemaleNames)
-              : getUniqueName(availableMaleNames);
+          //const gender = Math.random() < 0.5 ? "F" : "M";
+          // const name =
+          //   gender === "F"
+          //     ? getUniqueName(availableFemaleNames)
+          //     : getUniqueName(availableMaleNames);
 
-          students.push({
-            id: nanoid(),
-            name, // 🧒 unique English name
-            gender,
-            behaviorProfile: t.name.toLowerCase(),
-            seatId: seat.id,
-          });
+          // students.push({
+          //   id: nanoid(),
+          //   name, // 🧒 unique English name
+          //   gender,
+          //   behaviorProfile: t.name.toLowerCase(),
+          //   seatId: seat.id,
+          // });
+if (Math.random() < 0.5 && availableFemaleNames.length > 0) {
+  const name = getUniqueName(availableFemaleNames);
+  students.push({
+    id: nanoid(),
+    name,
+    gender: "F",
+    behaviorProfile: t.name.toLowerCase(),
+    seatId: seat.id,
+  });
+} else {
+  const name = getUniqueName(availableMaleNames);
+  students.push({
+    id: nanoid(),
+    name,
+    gender: "M",
+    behaviorProfile: t.name.toLowerCase(),
+    seatId: seat.id,
+  });
+}
 
           chairIndex++;
         }
       }
+      useClassroomStore.setState(() => ({ students:[] }));
 
       // ✅ עדכון בטוח ל־store (לא מוחק פריטים אחרים)
       useClassroomStore.setState((state) => ({ ...state, students }));
