@@ -3,6 +3,9 @@ import "../style/Signup.css";
 import toast from "react-hot-toast";
 import { authStore } from "../store/authStore";
 
+/**
+ * Manages user sign-up with email verification and form validation.
+ */
 const Signup = () => {
   const { signup, verifyNewEmail } = authStore();
  

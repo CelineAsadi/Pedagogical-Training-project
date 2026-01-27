@@ -4,6 +4,9 @@ import "../style/Contact.css";
 import { supportStore } from "../store/supportStore";
 import { useNavigate } from "react-router-dom";
 
+// The Contact component provides a contact form that collects user details and messages, 
+// sends the data to the system via the support store, and redirects the user to the home page after a successful submission.
+
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -13,7 +16,7 @@ const Contact = () => {
   });
 
   const { contactUs } = supportStore();
-  const navigate = useNavigate(); // ✅ ניווט
+  const navigate = useNavigate(); 
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,12 +25,12 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     //contactUs(formData);
-    const success = await contactUs(formData); // ✅ מחכה לתשובה
+    const success = await contactUs(formData); 
 
     if (success) {
  setTimeout(() => {
       navigate("/");
-    }, 500); //  0.5 שניות    
+    }, 500);   
     }
   };
 

@@ -4,6 +4,10 @@ import { axiosInstance } from "../lib/axios";
 import "../style/Login.css";
 import { authStore } from "../store/authStore";
 
+/**
+ * Handles user login by collecting credentials and authenticating the user.
+ */
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

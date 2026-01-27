@@ -3,6 +3,11 @@ import { authStore } from "../store/authStore";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+/**
+ * Manages user profile viewing and editing, including email verification
+ * and profile updates.
+ */
+
 const Profile = () => {
   const { authUser, logout, updateProfile, verifyNewEmail } = authStore();
 

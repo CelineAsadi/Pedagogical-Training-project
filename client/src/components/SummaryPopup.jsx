@@ -12,6 +12,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+
+/**
+ * SummaryPopup Component
+ * Displays a post-lesson summary in a popup window.
+ * Presents averaged performance scores, strengths and weaknesses,
+ * and a bar chart comparing the current lesson with the two
+ * previous sessions to visualize progress over time.
+ */
 export default function SummaryPopup({ summary, onClose }) {
   const [graphData, setGraphData] = useState([]);
   const { fetchLastThree } = mainPageStore();
@@ -94,7 +102,7 @@ export default function SummaryPopup({ summary, onClose }) {
         stroke="#2d4f8b"
       />
 
-      {/* ---- ציר Y: ציון ---- */}
+      {/* ---- Y: score ---- */}
       <YAxis
         label={{
           value: "ציון",

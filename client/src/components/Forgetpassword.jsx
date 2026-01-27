@@ -3,6 +3,14 @@ import { useNavigate } from "react-router-dom";
 import "../style/Forgetpassword.css";
 import { authStore } from "../store/authStore";
 
+/**
+ * ForgetPassword Component
+ * Handles the password recovery process in two steps:
+ * 1) Verifies the user's email and sends a reset code.
+ * 2) Resets the password after validating the verification code
+ *    and confirming the new password.
+ * Upon successful reset, the user is redirected to the login page.
+ */
 const ForgetPassword = () => {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");

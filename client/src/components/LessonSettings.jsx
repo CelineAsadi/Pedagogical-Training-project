@@ -5,6 +5,15 @@ import toast from "react-hot-toast";
 import { lessonSettingsStore } from "../store/lessonSettingsStore";
 import { authStore } from "../store/authStore";
 
+/**
+ * LessonSettings Component
+ * Manages the lesson configuration before starting a simulation.
+ * Allows the user to define class details (name, size, duration, topic)
+ * and configure the distribution of student behavior types.
+ * Validates that the total number of students matches the class size,
+ * saves the settings to the server, and navigates to the classroom on success.
+ */
+
 const LessonSettings = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
@@ -43,10 +52,10 @@ const STUDENT_TYPES = [
   const updated = [...studentTypes];
   const newValue = updated[index].count + delta;
 
-  // לא יורדים מתחת ל־0
+  
   if (newValue < 0) return;
 
-  // אם מנסים להוסיף (+) ועברנו את גודל הכיתה – נחסום
+  
   if (delta > 0 && totalStudents >= classSize) return;
 
   updated[index].count = newValue;
@@ -75,7 +84,7 @@ const STUDENT_TYPES = [
       classSize,
       duration,
 studentTypes: studentTypes.map(t => ({
-    name: t.value,   // 👈 אנגלית בלבד למסד ול-AI
+    name: t.value,   
     count: t.count,
   })),      className,
       lessonTopic,
@@ -181,10 +190,7 @@ studentTypes: studentTypes.map(t => ({
                     >
                       +
                     </button>
-                    {/* 
-                    <button type="button" onClick={() => updateCount(i, -1)}>-</button>
-                    <span>{type.count}</span>
-                    <button type="button" onClick={() => updateCount(i, +1)}>+</button> */}
+                    
                   </div>
                 </div>
               ))}

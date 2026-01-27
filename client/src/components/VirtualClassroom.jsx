@@ -6,6 +6,14 @@ import VirtualClassroomCore from "./VirtualClassroomCore";
 
 import "../style/VirtualClassroom.css";
 
+/**
+ * VirtualClassroom Component
+ * Loads the classroom configuration based on URL parameters
+ * and renders the main virtual classroom simulation.
+ * Handles loading and error states before initializing
+ * the VirtualClassroomCore component.
+ */
+
 export default function VirtualClassroom() {
   const [searchParams] = useSearchParams();
   const type = searchParams.get("type") || "basic";

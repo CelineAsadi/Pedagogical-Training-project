@@ -10,6 +10,9 @@ import { useDragOnFloor, snapVec3, clampToRoom } from '../lib/drag';
 
 const AVATAR_Y = 0.55;
 
+/**
+ * 3D student avatar with animations, dragging, and speaking indicators.
+ */
 export default function StudentAvatar({ student, position, rotation, onSelect, speakingText, onMoved }) {
   const groupRef = useRef(null);
   const mouthRef = useRef(null);
@@ -33,7 +36,6 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
       bottom: (isGirl ? skirts : pantsB)[Math.floor(Math.random() * (isGirl ? skirts : pantsB).length)],
       hair: hairs[Math.floor(Math.random() * hairs.length)],
       height: isGirl ? 1.0 + Math.random() * 0.05 : 1.02 + Math.random() * 0.06,
-      // hairStyle: isGirl ? (Math.random() < 0.5 ? 'bob' : 'ponytail') : 'short'
       hairStyle: isGirl ? 'bob' : 'short'
 
     };
