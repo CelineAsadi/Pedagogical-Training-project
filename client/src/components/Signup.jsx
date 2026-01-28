@@ -1,15 +1,22 @@
+/**
+ * Signup
+ * Handles the teacher registration flow.
+ * Responsibilities:
+ * - Manage sign-up form state and validation
+ * - Enforce password confirmation
+ * - Perform email verification using a code-based flow
+ * - Prevent account creation until email verification is completed
+ * - Submit validated user data to the authentication store
+ * UX & Security:
+ * - Disables email input after successful verification
+ * - Displays clear feedback for errors and verification status
+ */
 import { useState } from "react";
 import "../style/Signup.css";
 import toast from "react-hot-toast";
 import { authStore } from "../store/authStore";
-
-/**
- * Manages user sign-up with email verification and form validation.
- */
 const Signup = () => {
   const { signup, verifyNewEmail } = authStore();
- 
-
   const [formData, setFormData] = useState({
     fname: "",
     lname: "",
@@ -20,43 +27,32 @@ const Signup = () => {
     classlevel: "",
     teachExp: "",
   });
-
   const [verificationCode, setVerificationCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
   const handleSendCode = async () => {
     const success = await verifyNewEmail({step: "request",Email: formData.email, });
     if (success)  setCodeSent(true);
   };
-
-
   const handleVerifyCode = async () => {
     const success = await verifyNewEmail({ step: "verify",Email: formData.email,code: verificationCode,});
-
     if (success) {
       setEmailVerified(true);
       setCodeSent(false);}
   };
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match!");
       return;
     }
-
     if (!emailVerified) {
       toast.error("Please verify your email before signing up!");
       return;
     }
-
     signup({
       FName: formData.fname,
       LName: formData.lname,
@@ -67,18 +63,13 @@ const Signup = () => {
       TeachExp: formData.teachExp,
       ProfileImage: formData.gender === "Female" ? "/female.png" : "/male.png",
     });
-    
-
   };
-
   return (
     <div className="signup-page">
       <div className="signup-card">
         <h2>Create Account</h2>
         <p className="signup-subtitle">Join us today and start your journey 🚀</p>
-
         <form className="signup-form" onSubmit={handleSubmit}>
-
           <div className="form-column">
             <label>First Name</label>
             <input
@@ -89,7 +80,6 @@ const Signup = () => {
               onChange={handleChange}
               required
             />
-
             <label>Last Name</label>
             <input
               type="text"
@@ -99,7 +89,6 @@ const Signup = () => {
               onChange={handleChange}
               required
             />
-
             <label>Email</label>
             <input
               type="email"
@@ -110,8 +99,6 @@ const Signup = () => {
               required
               disabled={emailVerified}
             />
-
-        
             {!emailVerified ? (
               !codeSent ? (
                 <button
@@ -142,8 +129,6 @@ const Signup = () => {
               <p className="verified-text">✅ Verified</p>
             )}
           </div>
-
-    
           <div className="form-column">
             <label>Password</label>
             <input
@@ -154,7 +139,6 @@ const Signup = () => {
               onChange={handleChange}
               required
             />
-
             <label>Confirm Password</label>
             <input
               type="password"
@@ -164,7 +148,6 @@ const Signup = () => {
               onChange={handleChange}
               required
             />
-
             <label>Gender</label>
             <select
               name="gender"
@@ -176,7 +159,6 @@ const Signup = () => {
               <option value="Female">Female</option>
               <option value="Male">Male</option>
             </select>
-
             <label>Class Level (3-6)</label>
             <select
               name="classlevel"
@@ -190,7 +172,6 @@ const Signup = () => {
               <option value="5">5</option>
               <option value="6">6</option>
             </select>
-
             <label>Teaching Experience</label>
             <select
               name="teachExp"
@@ -205,7 +186,6 @@ const Signup = () => {
             </select>
           </div>
         </form>
-
         <button type="submit" className="btn-signup" onClick={handleSubmit}>
           Sign Up
         </button>
@@ -213,5 +193,4 @@ const Signup = () => {
     </div>
   );
 };
-
 export default Signup;

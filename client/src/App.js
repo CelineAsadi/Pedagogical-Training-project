@@ -1,4 +1,15 @@
-// import React from 'react';
+/**
+ * Application Routing (React Router)
+ * This file defines all application routes and access control.
+ * Routing logic:
+ * - Public routes: accessible without authentication
+ * - Protected routes: require authenticated user (authUser)
+ * - Automatic redirects based on authentication state
+ * Key responsibilities:
+ * - Initialize authentication check on app load
+ * - Protect sensitive pages (MainPage, Profile, VirtualClassroom, etc.)
+ * - Handle navigation fallback for unknown routes
+ */
 import { BrowserRouter, Navigate, Route, Routes,useSearchParams } from 'react-router-dom';
 import Home from './components/Home';
 import Login from './components/Login';
@@ -15,27 +26,28 @@ import { useEffect } from 'react';
 import { Toaster } from "react-hot-toast";
 import VirtualClassroom from './components/VirtualClassroom';
 import MySimulations from './components/MySimulations';
-
-
+/**
+ * VirtualClassroomWrapper
+ * Reads URL query parameters (type, sessionId),
+ * loads the correct classroom configuration,
+ * and renders the VirtualClassroom component.
+ * This wrapper keeps routing logic separate
+ * from classroom simulation logic.
+ */
 function VirtualClassroomWrapper() {
   const [params] = useSearchParams();
-  const type = params.get("type") || "basic"; // נקבל ?type=basic או ?type=custom
+  const type = params.get("type") || "basic"; 
   const config = useClassroomConfig(type);
-
   if (!config) return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading classroom...</p>;
-
   return <VirtualClassroom config={config} />;
 }
 function App() {
   const { authUser, checkAuth } = authStore();
-
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
-
   // Debug: log authUser whenever App renders
   console.log("AuthUser:", authUser);
-
   return (
     <>
       <BrowserRouter>
@@ -80,7 +92,6 @@ function App() {
         <Route path="/VirtualClassroom"    
             element={authUser ? <VirtualClassroomWrapper /> : <Navigate to="/" replace />}
           />
-
           {/* Fallback Route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -89,5 +100,4 @@ function App() {
     </>
   );
 }
-
 export default App;

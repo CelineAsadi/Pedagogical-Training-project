@@ -1,25 +1,30 @@
+/**
+ * StudentAvatar Component
+ * This file defines a fully interactive 3D student avatar used inside the
+ * virtual classroom simulation.
+ * The component is responsible for rendering a student as a Three.js object
+ * using react-three-fiber and drei utilities, including:
+ * - Visual appearance (body, head, clothing, hair)
+ * - Subtle idle animations (floating, blinking)
+ * - Speaking animation (mouth movement + visual highlight)
+ * - Drag-and-drop positioning within classroom boundaries
+ * Each avatar visually represents a simulated student and reacts in real time
+ * to lesson events and teacher interactions.
+ */
 import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-
 import "../style/StudentAvatar.css";
-
 import { useClassroomStore, FACE_FRONT } from '../lib/store';
 import { useDragOnFloor, snapVec3, clampToRoom } from '../lib/drag';
-
 const AVATAR_Y = 0.55;
-
-/**
- * 3D student avatar with animations, dragging, and speaking indicators.
- */
 export default function StudentAvatar({ student, position, rotation, onSelect, speakingText, onMoved }) {
   const groupRef = useRef(null);
   const mouthRef = useRef(null);
   const lidsRefL = useRef(null);
   const lidsRefR = useRef(null);
   const moveStudent = useClassroomStore((s) => s.moveStudent);
-
   const visual = useMemo(() => {
     const skinTones = ['#f2c7a3', '#e0a67c', '#c2845d', '#a36a48', '#7c4f32'];
     const topsB = ['#2563eb', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -27,7 +32,6 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
     const pantsB = ['#1f2937', '#334155', '#4b5563'];
     const skirts = ['#64748b', '#475569', '#374151'];
     const hairs = ['#2b2b2b', '#3a2a1f', '#1f1f1f', '#754c24', '#5c4033', '#3d2b1f'];
-
     const isGirl = String(student.gender ) ?.toUpperCase()?.startsWith("F");
     return {
       isGirl,
@@ -37,20 +41,16 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
       hair: hairs[Math.floor(Math.random() * hairs.length)],
       height: isGirl ? 1.0 + Math.random() * 0.05 : 1.02 + Math.random() * 0.06,
       hairStyle: isGirl ? 'bob' : 'short'
-
     };
   }, [student.id,student.gender]);
-
   /* ===== Animations ===== */
   useFrame((state) => {
     const g = groupRef.current; 
     if (!g) return;
-
     const t = state.clock.getElapsedTime();
     g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, rotation?.[1] ?? FACE_FRONT[1], 0.12);
     g.position.y = position[1] + 0.02 * Math.sin(t * 1.1 + student.id.length);
   });
-
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (mouthRef.current) {
@@ -59,29 +59,24 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
         : 0.03;
     }
   });
-
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     const blink = (Math.sin(t * 0.6 + student.id.length) + 1) / 2;
     const closeY = blink > 0.96 ? 0.02 : 0.08;
-
     if (lidsRefL.current) lidsRefL.current.scale.y = closeY;
     if (lidsRefR.current) lidsRefR.current.scale.y = closeY;
   });
-
   /* ===== Dragging ===== */
   const { startDrag } = useDragOnFloor({
     onDrag: (p) => {
       const newPos = snapVec3(clampToRoom([p.x, AVATAR_Y, p.z]));
       moveStudent(student.id, newPos, rotation ?? FACE_FRONT);
       onMoved?.(student.id, newPos);
-
       document.dispatchEvent(new CustomEvent("studentMovedFromHUD", {
         detail: { id: student.id, position: newPos }
       }));
     }
   });
-
   return (
     <group
       ref={groupRef}
@@ -97,7 +92,6 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
           <meshBasicMaterial color="#ffb703" />
         </mesh>
       )}
-
       {/* === Lower body === */}
       <group position={[0, -0.32, 0]}>
         {visual.isGirl ? (
@@ -106,7 +100,6 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
               <coneGeometry args={[0.28, 0.28, 24]} />
               <meshStandardMaterial color={visual.bottom} />
             </mesh>
-
             {/* legs */}
             <mesh position={[-0.1, -0.02, 0]} castShadow>
               <cylinderGeometry args={[0.05, 0.05, 0.24, 12]} />
@@ -123,7 +116,6 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
               <boxGeometry args={[0.36, 0.24, 0.28]} />
               <meshStandardMaterial color={visual.bottom} />
             </mesh>
-
             {/* legs */}
             <mesh position={[-0.08, -0.1, 0]} castShadow>
               <cylinderGeometry args={[0.06, 0.06, 0.26, 12]} />
@@ -136,14 +128,12 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
           </>
         )}
       </group>
-
       {/* === Upper body === */}
       <group position={[0, -0.02, 0]}>
         <mesh castShadow>
           <cylinderGeometry args={[0.23, 0.25, 0.44, 18]} />
           <meshStandardMaterial color={visual.top} />
         </mesh>
-
         {/* Arms */}
         <mesh position={[-0.28, -0.05, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[0.04, 0.04, 0.32, 12]} />
@@ -154,20 +144,17 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
           <meshStandardMaterial color={visual.top} />
         </mesh>
       </group>
-
       {/* Neck */}
       <mesh position={[0, 0.23, 0]}>
         <cylinderGeometry args={[0.07, 0.07, 0.12, 12]} />
         <meshStandardMaterial color={visual.skin} />
       </mesh>
-
       {/* === Head === */}
       <group position={[0, 0.35, 0]}>
         <mesh castShadow>
           <sphereGeometry args={[0.26, 32, 32]} />
           <meshStandardMaterial color={visual.skin} />
         </mesh>
-
         {/* Eyes */}
         <group position={[0, 0.03, 0.22]}>
           {/* Left */}
@@ -185,7 +172,6 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
               <meshStandardMaterial color={visual.skin} />
             </mesh>
           </group>
-
           {/* Right */}
           <group position={[0.08, 0.02, 0]}>
             <mesh>
@@ -202,26 +188,22 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
             </mesh>
           </group>
         </group>
-
         {/* Mouth */}
         <mesh ref={mouthRef} position={[0, -0.07, 0.24]}>
           <boxGeometry args={[0.12, 0.03, 0.02]} />
           <meshStandardMaterial color="#a33b3b" />
         </mesh>
-
         {/* Hair */}
         <mesh position={[0, 0.02, -0.02]}>
           <sphereGeometry args={[0.265, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
           <meshStandardMaterial color={visual.hair} />
         </mesh>
-
         {visual.hairStyle === "bob" && (
           <mesh position={[0, -0.04, -0.02]}>
             <torusGeometry args={[0.24, 0.08, 12, 36]} />
             <meshStandardMaterial color={visual.hair} />
           </mesh>
         )}
-
         {visual.hairStyle === "ponytail" && (
           <>
             <mesh position={[0, -0.02, -0.18]}>
@@ -235,12 +217,10 @@ export default function StudentAvatar({ student, position, rotation, onSelect, s
           </>
         )}
       </group>
-
       {/* === Name label === */}
       <Html distanceFactor={14} position={[0, -0.011, 0.15]}>
         <div className="student-name-label">{student.name}</div>
       </Html>
-
       {/* === Speech bubble === */}
       {speakingText && (
         <Html distanceFactor={12} position={[0, 0.75, 0.15]}>

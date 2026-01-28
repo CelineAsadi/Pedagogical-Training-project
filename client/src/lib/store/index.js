@@ -1,37 +1,48 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
-
-/* ==== קבועים כלליים ==== */
+// Classroom spatial constants
 export const ROOM = { width: 14, depth: 10 };
 export const SNAP = { translate: 0.25, rotateRad: Math.PI / 12 };
 export const FACE_FRONT = [0, Math.PI, 0];
-const AVATAR_Y = 0.55; // גובה ישיבה של האבאטארים
-
-/* ==== עזרים פנימיים ==== */
-// גזירת תנוחת בסיס (מיקום/סיבוב) לתלמיד לפי הכיסא שלו, אם יש
+const AVATAR_Y = 0.55; 
+/**
+ * Helper: derive a student's base pose
+ * A student's "base pose" comes from their assigned chair.
+ * Used when:
+ * - rotating students
+ * - resetting orientation
+ * - no manual drag override exists
+ */
 function getStudentBasePose(state, studentId) {
   const stu = state.students.find((x) => x.id === studentId);
   if (!stu || !stu.seatId) return { basePos: undefined, baseRot: undefined };
-
   const chair = state.items.find(
     (it) => it.id === stu.seatId && it.type === "chair"
   );
   if (!chair) return { basePos: undefined, baseRot: undefined };
-
   const basePos = [chair.position[0], AVATAR_Y, chair.position[2] - 0.05];
   const baseRot = chair.rotation;
   return { basePos, baseRot };
 }
-
-// נירמול זווית ל-(-π, π]
+/**
+ * Helper: normalize rotation angle
+ * Keeps yaw values within [-π, π]
+ * Prevents numeric drift during rotations
+ */
 function normYaw(rad) {
   let r = rad;
   while (r <= -Math.PI) r += Math.PI * 2;
   while (r > Math.PI) r -= Math.PI * 2;
   return r;
 }
-
-/* ✅ פונקציה שבונה רהיטים (desks + chairs) */
+/**
+ * Classroom furniture generator
+ * Builds desks + chairs layout programmatically
+ * Ensures:
+ * - consistent spacing
+ * - aligned rows
+ * - fixed number of seats
+ */
 function buildClassItems() {
   const items = [];
   const ROWS = 4;
@@ -40,23 +51,19 @@ function buildClassItems() {
   const DESK_SPACING_Z = 2.2;
   const SIDE_AISLE = 1.0;
   const FRONT_CLEARANCE = 1.8;
-
   const totalWidth = SIDE_AISLE + SEATS_PER_ROW * DESK_SPACING_X + SIDE_AISLE;
   const START_X = -totalWidth / 2 + SIDE_AISLE + DESK_SPACING_X / 2;
   const START_Z = -ROOM.depth / 2 + FRONT_CLEARANCE;
-
   for (let r = 0; r < ROWS; r++) {
     for (let i = 0; i < SEATS_PER_ROW; i++) {
       const x = START_X + i * DESK_SPACING_X;
       const z = START_Z + r * DESK_SPACING_Z;
-
       items.push({
         id: nanoid(),
         type: "desk",
         position: [x, 0, z],
         rotation: FACE_FRONT,
       });
-
       items.push({
         id: nanoid(),
         type: "chair",
@@ -65,24 +72,31 @@ function buildClassItems() {
       });
     }
   }
-
   return items;
 }
-
-// ✅ כיתה בסיסית מוכנה כבר בטעינה
 const initialItems = buildClassItems();
-
-/* ==== Zustand Store ==== */
+/**
+ *  Zustand Classroom Store
+ * Central state manager for:
+ * - classroom layout
+ * - student positioning
+ * - selection & interaction
+ * - disruptions & teacher responses
+ *
+ * Used by:
+ * - VirtualClassroomCore
+ * - StudentAvatar
+ * - HUD controls
+ * - Socket event handlers
+ */
 export const useClassroomStore = create((set, get) => ({
-  /* פריטים ותלמידים */
+  // Static classroom objects
   items: initialItems,
+  // Students & selection
   students: [],
-
-  /* בחירה */
   selectionId: null,
   select: (id) => set({ selectionId: id }),
-
-  /* תנועת פריט (שולחן/כיסא) */
+  //Furniture movement
   moveItem: (id, position, rotation) =>
     set((state) => ({
       items: state.items.map((it) =>
@@ -91,11 +105,8 @@ export const useClassroomStore = create((set, get) => ({
           : it
       ),
     })),
-
-  /* טרנספורמים של תלמידים (מיקום/סיבוב חורגים מהבסיס) */
+      // Student transforms (overrides)
   studentTransforms: {},
-
-  // גרירה/הזזה של תלמיד (שומר גם rotation אם התקבל; אחרת משאיר קיים/ברירת-מחדל קדימה)
   moveStudent: (id, position, rotation) =>
     set((state) => ({
       studentTransforms: {
@@ -108,14 +119,11 @@ export const useClassroomStore = create((set, get) => ({
         },
       },
     })),
-
-  /* סיבוב של מה שנבחר (פריט או תלמיד) — בלי "קפיצה" */
+    //  Rotation controls (HUD)
   rotateSelected: (dirRad) =>
     set((state) => {
       const id = state.selectionId;
       if (!id) return {};
-
-      // אם זה פריט (שולחן/כיסא)
       const isItem = state.items.some((it) => it.id === id);
       if (isItem) {
         return {
@@ -133,12 +141,8 @@ export const useClassroomStore = create((set, get) => ({
           ),
         };
       }
-
-      // תלמיד
       const prev = state.studentTransforms[id] ?? {};
       const { basePos, baseRot } = getStudentBasePose(state, id);
-
-      // תמיד משמרים position: קודם override קיים; אם אין — גוזרים מכיסא; אם גם אין, נשאיר undefined (יטופל ב-Scene)
       const currentPos = prev.position ?? basePos;
       const currentRot = prev.rotation ?? baseRot ?? FACE_FRONT;
       const nextRot = [
@@ -146,24 +150,20 @@ export const useClassroomStore = create((set, get) => ({
         normYaw(currentRot[1] + dirRad),
         currentRot[2] ?? 0,
       ];
-
       return {
         studentTransforms: {
           ...state.studentTransforms,
           [id]: {
-            position: currentPos, // ✅ לא מאפסים ל-[0,0.85,0]
+            position: currentPos, 
             rotation: nextRot,
           },
         },
       };
     }),
-
-  /* יישור קדימה של מה שנבחר (פריט או תלמיד) — בלי "קפיצה" */
   faceFront: () =>
     set((state) => {
       const id = state.selectionId;
       if (!id) return {};
-
       const isItem = state.items.some((it) => it.id === id);
       if (isItem) {
         return {
@@ -172,12 +172,9 @@ export const useClassroomStore = create((set, get) => ({
           ),
         };
       }
-
-      // תלמיד
       const prev = state.studentTransforms[id] ?? {};
       const { basePos } = getStudentBasePose(state, id);
-
-      const currentPos = prev.position ?? basePos; // ✅ משמרים/גוזרים מכיסא
+      const currentPos = prev.position ?? basePos;
       return {
         studentTransforms: {
           ...state.studentTransforms,
@@ -188,20 +185,10 @@ export const useClassroomStore = create((set, get) => ({
         },
       };
     }),
-
-   /* ===== אירועי סימולציה ===== */
-
-  // 🔴 כל ההפרעות הפעילות/היסטוריות בסימולציה
-  // כל הפרעה: { id, sessionId?, studentId, studentName?, type, label, utteranceText, startedAt, endedAt }
+    // Disruptions lifecycle
   disruptions: [],
-
-  // 🔵 תגובות מורה (טקסט + מאפייני קול וכו') – תשתמשי בהמשך לניתוח GPT
   teacherResponses: [],
-
-  // 🟡 ההפרעה האחרונה שקרתה (כדי לקשר בקלות לתגובה אחריה)
   lastDisruption: null,
-
-  // ✅ יצירת הפרעה חדשה (נקודת הכניסה *היחידה* מהקליינט)
   startDisruption: ({
     id,
     sessionId,
@@ -210,7 +197,7 @@ export const useClassroomStore = create((set, get) => ({
     type,
     label,
     utteranceText,
-    ts, // timestamp מהשרת אם קיים
+    ts, 
   }) =>
     set((state) => {
       const startedAt = ts || Date.now();
@@ -225,7 +212,6 @@ export const useClassroomStore = create((set, get) => ({
         startedAt,
         endedAt: null,
       };
-
       return {
         disruptions: [...state.disruptions, disruption],
         lastDisruption: {
@@ -236,8 +222,6 @@ export const useClassroomStore = create((set, get) => ({
         },
       };
     }),
-
-  // ✅ סימון הפרעה כסגורה (GPT החליט שנגמרה / אחרי תגובת המורה)
   endDisruption: (disruptionId) =>
     set((state) => ({
       disruptions: state.disruptions.map((d) =>
@@ -246,15 +230,11 @@ export const useClassroomStore = create((set, get) => ({
           : d
       ),
     })),
-
-  // ✅ אם בא לך לנקות הכל בסוף שיעור
   clearDisruptions: () => set({ disruptions: [], lastDisruption: null }),
-
-  // ✅ שמירת תגובת מורה (תמלול + מאפייני קול) – בשלב הבא כשתוסיפי מיקרופון
+  //Teacher responses
   addTeacherResponse: (response) =>
     set((state) => ({
       teacherResponses: [...state.teacherResponses, response],
     })),
-
   setLastDisruption: (d) => set({ lastDisruption: d }),
 }));

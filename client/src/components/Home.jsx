@@ -1,9 +1,17 @@
+/**
+ * Home Page Component
+ * This file implements the main landing page of the application.
+ * The home page introduces the Pedagogical Training platform,
+ * highlights its core features, and provides navigation to
+ * authentication and contact pages.
+ * It also includes a short tutorial video to help new users
+ * understand how to use the system.
+ */
 import "../style/Home.css";
 import { useState } from "react";
 
 const Home = () => {
     const [open, setOpen] = useState(false);
-
   return (
     <div>
       {/* Navbar */}
@@ -18,7 +26,6 @@ const Home = () => {
           <li><a href="/Signup">Signup</a></li>
         </ul>
       </nav>
-
       {/* Hero */}
       <section className="hero">
         <div className="hero-text">
@@ -30,7 +37,6 @@ const Home = () => {
         </div>
         <div className="hero-media">
       <p>Video Tutorial: How to Use Our Website– Click on the video to watch</p>
-
               <video 
         className="preview-video"
         src=""
@@ -40,9 +46,6 @@ const Home = () => {
         poster=""
         onClick={() => setOpen(true)}
       ></video>
-
-
-
       {/* Modal */}
       {open && (
         <div className="overlay">
@@ -50,7 +53,6 @@ const Home = () => {
             <button className="close-btn" onClick={() => setOpen(false)}>
               ✖
             </button>
-
             <video width="600" controls autoPlay>
               <source src="/tutorial.mp4" type="video/mp4" />
             </video>
@@ -59,7 +61,6 @@ const Home = () => {
       )}
     </div>
       </section>
-
       {/* Features */}
       <section className="features">
         <div className="feature">
@@ -78,5 +79,4 @@ const Home = () => {
     </div>
   );
 };
-
 export default Home;

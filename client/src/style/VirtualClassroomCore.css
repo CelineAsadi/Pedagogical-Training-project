@@ -1,4 +1,3 @@
-/* 🔹 Top Bar (Header) */
 .vc-header {
   position: absolute;
   top: 0;
@@ -13,16 +12,12 @@
   z-index: 40;
   border-bottom: 1px solid #e5e7eb;
 }
-
 .vc-header.active {
   background: #fee2e2;
 }
-
 .vc-header.inactive {
   background: #f3f4f6;
 }
-
-/* 🔹 Start Button */
 .vc-start-btn {
   padding: 8px 14px;
   border-radius: 10px;
@@ -31,17 +26,13 @@
   font-weight: 600;
   cursor: pointer;
 }
-
 .vc-start-btn.enabled {
   background: #16a34a;
 }
-
 .vc-start-btn.disabled {
   background: #9ca3af;
   cursor: not-allowed;
 }
-
-/* 🔹 Stop Button */
 .vc-stop-btn {
   background: #dc2626;
   color: #fff;
@@ -50,22 +41,17 @@
   border-radius: 8px;
   cursor: pointer;
 }
-
-/* 🔹 Class Name Box */
 .vc-class-box {
   display: flex;
   align-items: center;
   gap: 10px;
   font-weight: 600;
 }
-
-/* 🔹 Main Container */
 .vc-container {
   position: fixed;
   inset: 0;
   background: #fff;
 }
-/* Hamburger Icon */
 .vc-hamburger {
   font-size: 22px;
   background: none;
@@ -76,8 +62,6 @@
 .vc-container {
   direction: rtl;
 }
-
-/* Sidebar Panel */
 .sidebar {
   position: fixed;
   top: 0;
@@ -90,25 +74,19 @@
   transition: 0.3s ease;
   z-index: 200;
 }
-
 .sidebar.open {
   left: 0;
 }
-
 .sidebar h2 {
   margin-bottom: 15px;
 }
-
 .sidebar ul {
   list-style: none;
   padding-left: 0;
 }
-
 .sidebar li {
   margin: 5px 0;
 }
-
-/* Close Button */
 .close-btn {
   background: none;
   border: none;
@@ -116,8 +94,6 @@
   float: right;
   cursor: pointer;
 }
-
-/* Dark overlay behind sidebar */
 .overlay {
   position: fixed;
   top: 0;
@@ -127,4 +103,3 @@
   background: rgba(0,0,0,0.3);
   z-index: 150;
 }
-

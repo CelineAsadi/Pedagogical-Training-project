@@ -1,42 +1,50 @@
-// client/src/hooks/useClassroomConfig.js
+/**
+ * Classroom Configuration Hook
+ * Responsible for building the full classroom configuration
+ * before entering the virtual simulation.
+ * Responsibilities:
+ * - Load lesson settings from the server (by className)
+ * - Fallback to default classroom configuration if none exists
+ * - Generate students with:
+ *   - Unique IDs
+ *   - Gender-based Hebrew names
+ *   - Behavior profiles
+ *   - Seat assignments
+ * - Populate the global classroom store (Zustand)
+ * - Expose loading state until configuration is ready
+ * Used by:
+ * - VirtualClassroom (before rendering VirtualClassroomCore)
+ */
 import { useEffect, useState } from "react";
 import { axiosInstance } from "../lib/axios";
 import { useClassroomStore } from "../lib/store";
 import { nanoid } from "nanoid";
 import { useSearchParams } from "react-router-dom";
-
 export function useClassroomConfig(type = "basic") {
   const [config, setConfig] = useState(null);
- //const [sessionId, setSessionId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
   const className = searchParams.get("class");
-
   useEffect(() => {
     async function fetchConfig() {
+      // 1️ Initialize loading state
       setLoading(true);
-
+      // Get classroom furniture (chairs) from global store
       const { items } = useClassroomStore.getState();
       const chairs = items.filter((i) => i.type === "chair");
-
       let studentTypesData = [];
-      let lessonData = null; // המסמך שחוזר מ-LessonSettings
-
-      // ===== 1) מנסים להביא הגדרות כיתה מהשרת לפי className =====
+      let lessonData = null; 
+      // 2️ Try loading lesson settings from server
       try {
         const res = await axiosInstance.get(
           `/lesson/settings?className=${encodeURIComponent(className)}`,
           { withCredentials: true }
         );
         const data = res.data;
-
-        // אם יש הגדרות מותאמות – נשמור
         if (data && data.studentTypes) {
           studentTypesData = data.studentTypes;
           lessonData = data;
         }
-
-        // שומרים config ראשוני כולל נושא השיעור
         if (data) {
           setConfig({
             ...data,
@@ -46,12 +54,9 @@ export function useClassroomConfig(type = "basic") {
       } catch (err) {
         console.warn("❌ No custom lesson settings found, will use defaults.");
       }
-
-      // ===== 2) אם אין studentTypes – נופלים לברירת מחדל =====
+      // 3️ Fallback to default classroom
       if (studentTypesData.length === 0) {
-        // עדיין ננסה לשמור את lessonTopic אם קיים ב-data
         let topicFromServer = lessonData?.lessonTopic || "";
-
         studentTypesData = [
         { name: "Attentive", count: 3 },
         { name: "Talker", count: 2 },
@@ -63,8 +68,6 @@ export function useClassroomConfig(type = "basic") {
         { name: "Hyperactive", count: 1 },
         { name: "Neutral", count: 1 },
         ];
-
-        // אם אין lessonData בכלל – נבנה אחד בסיסי
         if (!lessonData) {
           lessonData = {
             classSize: 15,
@@ -73,13 +76,11 @@ export function useClassroomConfig(type = "basic") {
             lessonTopic: topicFromServer,
           };
         } else {
-          // מוודאים שיש ערכים סבירים
           lessonData.classSize = lessonData.classSize || 15;
           lessonData.duration = lessonData.duration || 5;
           lessonData.className = lessonData.className || className;
           lessonData.lessonTopic = topicFromServer;
         }
-
         setConfig({
           classSize: lessonData.classSize,
           duration: lessonData.duration,
@@ -88,8 +89,7 @@ export function useClassroomConfig(type = "basic") {
           lessonTopic: lessonData.lessonTopic || "",
         });
       }
-
-      // אם עדיין אין לנו lessonData (שזה מוזר) – נסיים כאן
+      // 4️ Validate lesson before session start
       if (!lessonData || !lessonData._id) {
         console.error(
           "❌ useClassroomConfig: lessonData or lessonData._id is missing, cannot start session."
@@ -97,29 +97,7 @@ export function useClassroomConfig(type = "basic") {
         setLoading(false);
         return;
       }
-
-      // ===== 3) יצירת Session אמיתי בשרת לפי lessonId =====
-      // try {
-      //   const sessionRes = await axiosInstance.post(
-      //     "/session/start",
-      //     { lessonId: lessonData._id }, // 👈 זה ה-ObjectId של LessonSettings
-      //     { withCredentials: true }
-      //   );
-
-      //   if (sessionRes.data?.ok && sessionRes.data.sessionId) {
-      //     setSessionId(sessionRes.data.sessionId); // ⭐ זה ה-ObjectId של Session
-      //   } else {
-      //     console.warn(
-      //       "⚠️ session/start did not return ok=true or sessionId."
-      //     );
-      //   }
-      // } catch (err) {
-      //   console.error("❌ Error starting session:", err);
-      // }
-
-      // ===== 4) בניית רשימת תלמידים עם שמות/מגדר/כיסאות =====
-
-      // ✅ hebrew name lists (15 boys + 15 girls)
+      // 5️ Name pools (Hebrew, gender-based)
       const maleNames = [
             "יואב",
             "איתי",
@@ -137,7 +115,6 @@ export function useClassroomConfig(type = "basic") {
             "תומר",
             "אופק",
       ];
-
       const femaleNames = [
           "ריתאל",
           "מאיה",
@@ -155,8 +132,7 @@ export function useClassroomConfig(type = "basic") {
           "טל",
           "נור",
       ];
-
-      // ✅ Function to get a unique name
+      //  Function to get a unique name
       function getUniqueName(list) {
         if (list.length === 0) return "NoName"; // fallback if names run out
         const index = Math.floor(Math.random() * list.length);
@@ -164,33 +140,17 @@ export function useClassroomConfig(type = "basic") {
         list.splice(index, 1); // remove used name
         return name;
       }
-
-      // ✅ Ensure each student has a unique seat and name
+      //  Ensure each student has a unique seat and name
+     // 6️ Build students list
       const students = [];
       let chairIndex = 0;
-
       // Make copies of the name lists so we don't empty the originals
       let availableMaleNames = [...maleNames];
       let availableFemaleNames = [...femaleNames];
-
       for (const t of studentTypesData) {
         for (let i = 0; i < t.count; i++) {
           if (chairIndex >= chairs.length) break; // no more seats
-
           const seat = chairs[chairIndex];
-          //const gender = Math.random() < 0.5 ? "F" : "M";
-          // const name =
-          //   gender === "F"
-          //     ? getUniqueName(availableFemaleNames)
-          //     : getUniqueName(availableMaleNames);
-
-          // students.push({
-          //   id: nanoid(),
-          //   name, // 🧒 unique English name
-          //   gender,
-          //   behaviorProfile: t.name.toLowerCase(),
-          //   seatId: seat.id,
-          // });
 if (Math.random() < 0.5 && availableFemaleNames.length > 0) {
   const name = getUniqueName(availableFemaleNames);
   students.push({
@@ -210,29 +170,21 @@ if (Math.random() < 0.5 && availableFemaleNames.length > 0) {
     seatId: seat.id,
   });
 }
-
           chairIndex++;
         }
       }
+      // 7️ Update global classroom store
       useClassroomStore.setState(() => ({ students:[] }));
-
-      // ✅ עדכון בטוח ל־store (לא מוחק פריטים אחרים)
       useClassroomStore.setState((state) => ({ ...state, students }));
-
-      // נעדכן שוב את ה-config עם studentTypes (למקרה שעודכנו)
       setConfig((prev) => ({
         ...(prev || {}),
         studentTypes: studentTypesData,
       }));
-
       setLoading(false);
     }
-
     if (className) {
       fetchConfig();
     }
   }, [type, className]);
-
-  // ⭐ מחזירים גם sessionId, כדי שמעבר לזה תעבירי ל-VirtualClassroomCore
   return { config, loading };
 }

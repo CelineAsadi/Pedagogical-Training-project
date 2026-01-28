@@ -1,12 +1,19 @@
+/**
+ * PrivacyPolicy
+ * Displays the platform’s privacy policy in a clear and structured layout.
+ * Responsibilities:
+ * - Present information about data collection and usage
+ * - Explain security and data protection practices
+ * - Inform users of their rights regarding personal data
+ * - Provide a direct link to the contact page for privacy-related inquiries
+ */
 import "../style/PrivacyPolicy.css";
-
 const PrivacyPolicy = () => {
   return (
     <div className="privacy-container">
       <div className="privacy-card">
         <h1 className="privacy-title">Privacy Policy</h1>
         <p className="privacy-date">Effective Date: 2025</p>
-
         <section className="privacy-section">
           <h2>1. Information We Collect</h2>
           <p>
@@ -15,7 +22,6 @@ const PrivacyPolicy = () => {
             personalize your experience and improve our platform.
           </p>
         </section>
-
         <section className="privacy-section">
           <h2>2. How We Use Your Information</h2>
           <p>
@@ -23,7 +29,6 @@ const PrivacyPolicy = () => {
             and send important updates. We never sell your information to third parties.
           </p>
         </section>
-
         <section className="privacy-section">
           <h2>3. Data Protection</h2>
           <p>
@@ -31,7 +36,6 @@ const PrivacyPolicy = () => {
             sensitive data is encrypted and stored securely.
           </p>
         </section>
-
         <section className="privacy-section">
           <h2>4. Your Rights</h2>
           <p>
@@ -39,7 +43,6 @@ const PrivacyPolicy = () => {
             contacting our support team at any time.
           </p>
         </section>
-
         <section className="privacy-section">
           <h2>5. Contact Us</h2>
           <p>
@@ -47,7 +50,6 @@ const PrivacyPolicy = () => {
             through the <a href="/contact">Contact Page</a>.
           </p>
         </section>
-
         <div className="privacy-footer">
           <p>© 2025 Pedagogical Training. All rights reserved.</p>
         </div>
@@ -55,5 +57,4 @@ const PrivacyPolicy = () => {
     </div>
   );
 };
-
 export default PrivacyPolicy;

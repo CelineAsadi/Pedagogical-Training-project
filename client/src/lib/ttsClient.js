@@ -1,46 +1,58 @@
-// client/src/lib/ttsClient.js
-
-// 👂 נשמור לכל תלמיד פרופיל קול ייחודי
-// { [studentId]: { gender, pitch, rate, behaviorProfile } }
+/**
+ * Student Text-to-Speech (TTS) Utilities
+ * This module is responsible for:
+ * - Generating consistent voice profiles for students
+ * - Customizing pitch and speaking rate based on
+ *   gender and behavior profile
+ * - Requesting synthesized speech from the backend
+ * - Playing student speech audio in the virtual classroom
+ * The goal is to create realistic and consistent
+ * student voices across the simulation.
+ */
 const studentVoiceProfiles = {};
-
-// hash קטן ל-0..1 לפי studentId – כדי שכל תלמיד יקבל מספר קבוע
+/**
+ * Generates a deterministic pseudo-random number (0–1)
+ * from a string input (studentId).
+ * Used to ensure each student gets a stable
+ * but unique voice profile across sessions.
+ */
 function hashTo01(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
   }
-  return (hash % 1000) / 1000; // בין 0 ל-1
+  return (hash % 1000) / 1000; // from 0 to 1
 }
-
-// יצירת פרופיל קול "ילדי" לפי מגדר + פרופיל התנהגות
+/**
+ * Builds and stores a voice profile for a student
+ * based on:
+ * - Gender
+ * - Behavior profile
+ * - Deterministic randomness (studentId)
+ * The profile controls:
+ * - pitch (voice height)
+ * - rate (speaking speed)
+ */
 function buildVoiceProfile({ studentId, gender = "M", behaviorProfile }) {
   const rnd = hashTo01(studentId);
-
-  // בסיס – קול יותר צעיר (טון גבוה ומהירות קצת יותר מהירה)
-  let pitch; // Google: 0 = רגיל, 4–6 = גבוה יותר
-  let rate;  // 1.0 = רגיל
-
+  let pitch; 
+  let rate;  
   if (gender === "F") {
-    // ילדה – טון יותר גבוה
     pitch = 4 + rnd * 2;        // 4–6
     rate = 1.10 + rnd * 0.10;   // 1.10–1.20
   } else if (gender === "M") {
-    // ילד – קצת פחות גבוה
     pitch = 2 + rnd * 2;        // 2–4
     rate = 1.05 + rnd * 0.10;   // 1.05–1.15
   } else {
     pitch = 3 + rnd * 2;        // 3–5
     rate = 1.05 + rnd * 0.10;
   }
-
-  // התאמות עדינות לפי behaviorProfile
   switch ((behaviorProfile || "").toLowerCase()) {
     case "hyperactive":
-      rate += 0.15; // מדבר יותר מהר
+      rate += 0.15; 
       break;
     case "withdrawn":
-      rate -= 0.10; // מדבר לאט יותר
+      rate -= 0.10; 
       pitch -= 1.0;
       break;
     case "sensitive":
@@ -55,41 +67,42 @@ function buildVoiceProfile({ studentId, gender = "M", behaviorProfile }) {
     default:
       break;
   }
-
-  // הגבלת טווחים סבירים
-  // (Google תומך בערך -20..20 pitch, ומהירות 0.25..4)
   pitch = Math.max(-5, Math.min(10, pitch));
   rate = Math.max(0.8, Math.min(1.6, rate));
-
   const profile = { gender, pitch, rate, behaviorProfile };
   studentVoiceProfiles[studentId] = profile;
-
   console.log("🎙️ Voice profile for", studentId, profile);
   return profile;
 }
-
-// קריאה לשרת שמחזיר לנו Base64 של MP3
+/**
+ * Sends a TTS request to the backend and
+ * returns the synthesized audio as base64.
+ * Backend handles Google Cloud Text-to-Speech.
+ */
 export async function fetchTtsAudio({ text, gender, pitch, rate }) {
   const baseUrl =
     process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
-
   const res = await fetch(`${baseUrl}/api/tts/speak`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, gender, pitch, rate }),
   });
-
   if (!res.ok) {
     const errText = await res.text();
     console.error("TTS HTTP error", res.status, errText);
     throw new Error(`TTS HTTP error ${res.status}`);
   }
-
   const data = await res.json();
   return data.audioBase64;
 }
-
-// פונקציה נוחה לשימוש בתוך ה-VirtualClassroomCore
+/**
+ * Plays synthesized speech for a student.
+ * - Creates (or reuses) a student voice profile
+ * - Requests audio from the backend
+ * - Plays the resulting MP3 in the browser
+ * This function is triggered when a student
+ * speaks during the simulation.
+ */
 export async function playTTSAudio({
   text,
   gender = "M",
@@ -98,25 +111,20 @@ export async function playTTSAudio({
 }) {
   try {
     if (!text) return;
-
-    // אם אין לתלמיד עדיין פרופיל – ניצור
     let profile = studentVoiceProfiles[studentId];
     if (!profile) {
       profile = buildVoiceProfile({ studentId, gender, behaviorProfile });
     }
-
     const audioBase64 = await fetchTtsAudio({
       text,
       gender: profile.gender,
       pitch: profile.pitch,
       rate: profile.rate,
     });
-
     if (!audioBase64) {
       console.error("❌ TTS Error: empty audioBase64");
       return;
     }
-
     const audio = new Audio(`data:audio/mp3;base64,${audioBase64}`);
     audio.play();
   } catch (err) {

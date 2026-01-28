@@ -1,25 +1,33 @@
-// server/src/socket/lessonSocket.js
-
+/**
+ * Lesson Socket Engine
+ * This file implements the real-time classroom simulation engine using Socket.IO.
+ * It manages live lesson sessions, maintains runtime state per session,
+ * and periodically invokes the AI disruption decision engine to generate
+ * realistic student behaviors during the lesson.
+ * The socket layer is responsible for:
+ * - Managing client connections per session
+ * - Tracking students and seating positions
+ * - Starting and stopping lessons
+ * - Emitting AI-generated disruptions in real time
+ * This module coordinates between real-time events, persistence,
+ * and AI-driven classroom logic.
+ */
 const { Server } = require("socket.io");
 const { decideNextDisruptions } = require("../logic/gptClassEngine");
 const EventModel = require("../models/Event");
 const Session = require("../models/Session");
-
-// ננהל מצב זיכרון לכל sessionId
-// {
-//   [sessionId]: {
-//      students: [{ id, name, behaviorProfile, gender, seatPosition }],
-//      startedAt: Date,
-//      lastDecisionAt: Date | null,
-//      timer: NodeJS.Timeout | null,
-//      isRunning: boolean
-//   }
-// }
 const sessionRuntime = new Map();
 
 /**
- * הפונקציה שמחברת את ה-io לשרת הראשי
- * @param {http.Server} httpServer
+ * Initializes the Socket.IO server for lesson sessions.
+ * This function:
+ * - Attaches a Socket.IO server to the given HTTP server
+ * - Manages client connections scoped by sessionId
+ * - Initializes and maintains in-memory runtime state per session
+ * - Listens for lesson lifecycle events (start, stop)
+ * - Receives student data and real-time updates (movement, seating)
+ * Each connected client is joined to a room identified by sessionId,
+ * allowing disruptions and events to be broadcast only to the relevant classroom.
  */
 function initLessonSocket(httpServer) {
   console.log("function1", process.env.CLIENT_ORIGIN)
@@ -28,29 +36,21 @@ function initLessonSocket(httpServer) {
       origin: [
       "http://localhost:3000",
       "https://pedagogical-training-project.netlify.app",
-      "https://your-vercel-domain.vercel.app",
       process.env.CLIENT_ORIGIN,
     ],
     credentials: true,
     },
   });
-
   io.on("connection", (socket) => {
     const sessionId = socket.handshake.query.sessionId;
-
     console.log("🔌 Client connected. sessionId=", sessionId);
-
     if (!sessionId) {
       console.warn("Client connected without sessionId – disconnecting");
       socket.disconnect();
       return;
     }
-
-    // נשים את הסוקט בחדר לפי sessionId
-    socket.join(sessionId);
-
-    // נוודא שיש אוביקט runtime ל-session הזה
-    if (!sessionRuntime.has(sessionId)) {
+  socket.join(sessionId);
+  if (!sessionRuntime.has(sessionId)) {
       sessionRuntime.set(sessionId, {
         students: [],
         startedAt: null,
@@ -58,14 +58,8 @@ function initLessonSocket(httpServer) {
         timer: null,
         isRunning: false,
       });
-    }
-
-    const runtimeState = sessionRuntime.get(sessionId);
-
-    /**
-     * לקיחת רשימת התלמידים מהלקוח
-     * { students: [{id, name, behaviorProfile, gender, position}, ...] }
-     */
+  }
+  const runtimeState = sessionRuntime.get(sessionId);
     socket.on("lesson:students", ({ students }) => {
       console.log(
         `👨‍👩‍👧‍👦 Received ${students?.length || 0} students for session ${sessionId}`
@@ -81,11 +75,6 @@ function initLessonSocket(httpServer) {
             }))
           : [];
     });
-
-    /**
-     * עדכון מיקום תלמיד מהלקוח
-     * { id, position: [x,y,z] }
-     */
     socket.on("student:moved", ({ id, position }) => {
       const st = runtimeState.students || [];
       const idx = st.findIndex((s) => s.id === id);
@@ -93,26 +82,16 @@ function initLessonSocket(httpServer) {
         st[idx].seatPosition = position;
       }
     });
-
-    /**
-     * התחלת שיעור
-     * { durationSec }
-     */
     socket.on("lesson:start", async ({ durationSec }) => {
       console.log(
         `▶️ Starting lesson for session ${sessionId} (duration ${durationSec}s)`
       );
-
       runtimeState.startedAt = new Date();
       runtimeState.isRunning = true;
-
-      // אם יש טיימר ישן – ננקה
       if (runtimeState.timer) {
         clearTimeout(runtimeState.timer);
         runtimeState.timer = null;
       }
-
-      // מריצים מיד סיבוב ראשון
       runDecisionCycle(io, sessionId).catch((err) => {
         console.error(
           "[lessonSocket] Error in first decision cycle:",
@@ -120,29 +99,13 @@ function initLessonSocket(httpServer) {
         );
       });
     });
-
-    /**
-     * עצירת שיעור
-     */
-    // socket.on("lesson:stop", () => {
-    //   console.log("🛑 Lesson stopped for session", sessionId);
-    //   runtimeState.isRunning = false;
-    //   if (runtimeState.timer) {
-    //     clearTimeout(runtimeState.timer);
-    //     runtimeState.timer = null;
-    //   }
-    // });
   socket.on("lesson:stop", async () => {
   console.log("🛑 Lesson stopped for session", sessionId);
-
   runtimeState.isRunning = false;
-
   if (runtimeState.timer) {
     clearTimeout(runtimeState.timer);
     runtimeState.timer = null;
   }
-
-  // ⏱️ Update session endTime in DB
   try {
     await Session.findByIdAndUpdate(sessionId, {
       endTime: new Date(),
@@ -153,56 +116,51 @@ function initLessonSocket(httpServer) {
     console.error("❌ Failed to update endTime:", err);
   }
 });
-
-
     socket.on("disconnect", () => {
       console.log("🔌 Client disconnected. sessionId=", sessionId);
-      // אפשר לבחור למחוק מן המפה, או להשאיר – תלוי ברצונך
-      // כאן נשאיר כדי לא לאבד מצב תוך כדי רענון דפדפן
     });
   });
 }
-
 /**
- * לולאת החלטה: קוראת ל-GPT ומייצרת הפרעות
+ * Runs a single AI-driven disruption decision cycle for a session.
+ * This function:
+ * - Builds the current classroom context from runtime state
+ * - Calls the GPT-based disruption engine
+ * - Persists generated disruption events to the database
+ * - Emits disruption events to connected clients with proper timing
+ * - Schedules the next decision cycle based on AI recommendations
+ * The cycle continues automatically while the lesson is running
+ * and stops gracefully when the session ends.
  */
 async function runDecisionCycle(io, sessionId) {
   const runtimeState = sessionRuntime.get(sessionId);
   if (!runtimeState || !runtimeState.isRunning) return;
-
   try {
     const { actions, nextCheckInSeconds } =
       await decideNextDisruptions(sessionId, runtimeState);
-
     runtimeState.lastDecisionAt = new Date();
-
     const now = Date.now();
-
     if (actions.length === 0) {
       console.log(
         `🤫 No disruptions this round for session ${sessionId}`
       );
     }
-
      for (const action of actions) {
     const ts = now + (action.delayMs || 0);
-
     const student =
       (runtimeState.students || []).find(
         (s) => s.id === action.studentId
       ) || null;
-
-    // 🔹 קודם שומרים את האירוע במונגו
     let eventDoc = null;
     try {
       eventDoc = await EventModel.create({
-        sessionId,                                   // 🔗 ה-Session האמיתי
+        sessionId,                                 
         studentId: action.studentId || (student && student.id) || null,
         studentName: student?.name || "תלמיד",
         eventType: action.eventType || "disruption", // "question" | "disruption"
         content: action.utteranceText,
-        timestamp: new Date(ts),                     // מתי ההפרעה "קרתה"
-        status: "open",                              // עדיין לא נענתה
+        timestamp: new Date(ts),                 
+        status: "open",                            
       });
     } catch (err) {
       console.error(
@@ -210,7 +168,6 @@ async function runDecisionCycle(io, sessionId) {
         err
       );
     }
-
     const payload = {
       disruptionId: `${sessionId}-${ts}`,
       studentId: action.studentId || (student && student.id) || null,
@@ -219,19 +176,14 @@ async function runDecisionCycle(io, sessionId) {
       label: action.label || "תלמיד",
       utteranceText: action.utteranceText,
       ts,
-      eventId: eventDoc ? eventDoc._id.toString() : null, // 👈 חדש
+      eventId: eventDoc ? eventDoc._id.toString() : null, 
     };
-
     setTimeout(() => {
       console.log("📢 Emitting disruption:", payload);
       io.to(sessionId).emit("disruption", payload);
     }, action.delayMs || 0);
   }
-
-
-    // קובעים סיבוב הבא
     const delayMs = (nextCheckInSeconds || 15) * 1000;
-
     runtimeState.timer = setTimeout(
       () => runDecisionCycle(io, sessionId),
       delayMs
@@ -241,8 +193,6 @@ async function runDecisionCycle(io, sessionId) {
       `[lessonSocket] Error in decision cycle for session ${sessionId}:`,
       err
     );
-
-    // במקרה של שגיאה – ננסה שוב עוד 20 שניות
     runtimeState.timer = setTimeout(
       () => runDecisionCycle(io, sessionId),
       20000

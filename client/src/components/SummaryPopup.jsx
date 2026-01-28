@@ -1,7 +1,17 @@
-import React, { useEffect, useState } from "react";
+/**
+ * SummaryPopup Component
+ * This file defines a modal popup that presents a structured summary
+ * of a completed teaching session.
+ * The popup displays:
+ * - Quantitative performance averages (timing, tone, pedagogy, overall score)
+ * - AI-generated textual feedback (strengths and areas for improvement)
+ * - A visual comparison chart of the current session and the previous two sessions
+ * The component is used to help teachers reflect on their performance
+ * and track progress across multiple simulations.
+ */
+import  { useEffect, useState } from "react";
 import "../style/SummaryPopup.css";
 import { mainPageStore } from "../store/mainPageStore";
-
 import {
   BarChart,
   Bar,
@@ -11,54 +21,34 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
-
-/**
- * SummaryPopup Component
- * Displays a post-lesson summary in a popup window.
- * Presents averaged performance scores, strengths and weaknesses,
- * and a bar chart comparing the current lesson with the two
- * previous sessions to visualize progress over time.
- */
 export default function SummaryPopup({ summary, onClose }) {
   const [graphData, setGraphData] = useState([]);
   const { fetchLastThree } = mainPageStore();
-
   useEffect(() => {
     const loadGraph = async () => {
   try {
     const result = await fetchLastThree(summary.sessionId);
-
     if (!result.sessions) {
       console.error("No sessions returned from server");
       return;
     }
-
     const graph = result.sessions.map((s) => ({
       name: s.className,
       score: s.score ?? 0,
     }));
-
     setGraphData(graph);
   } catch (err) {
     console.error("Failed to load last 3 sessions graph", err);
   }
 };
-
-
     loadGraph();
   }, [summary]);
-
   if (!summary) return null;
-
   return (
     <div className="summary-overlay">
       <div className="summary-window">
-
         <button className="summary-close" onClick={onClose}>×</button>
-
         <h2 className="summary-title">📘 סיכום השיעור</h2>
-
         {/* ==== SUMMARY FIELDS ==== */}
         <div className="summary-section">
           <h3>🔢  ממוצעים</h3>
@@ -68,21 +58,17 @@ export default function SummaryPopup({ summary, onClose }) {
           <p><strong>ממוצע פדגוגיה:</strong> {summary.pedagogyAvg ?? "—"}</p>
           <p><strong>זמן תגובה ממוצע:</strong> {summary.avgResponseTime ?? "—"} שנייה</p>
         </div>
-
         <div className="summary-section">
           <h3>💪 נקודות חוזקה</h3>
           <p>{summary.strength || "—"}</p>
         </div>
-
         <div className="summary-section">
           <h3>⚠ נקודות לשיפור</h3>
           <p>{summary.weakness || "—"}</p>
         </div>
-
         {/* ==== GRAPH ===== */}
         <div className="summary-section">
   <h3>( השיעור הזה  + שני קודמים )📊 התקדמות </h3>
-
   <div className="graph-container">
     <ResponsiveContainer width="100%" aspect={2.5}>
       <BarChart data={graphData}>
@@ -101,7 +87,6 @@ export default function SummaryPopup({ summary, onClose }) {
         height={45}
         stroke="#2d4f8b"
       />
-
       {/* ---- Y: score ---- */}
       <YAxis
         label={{
@@ -113,7 +98,6 @@ export default function SummaryPopup({ summary, onClose }) {
         }}
         stroke="#2d4f8b"
       />
-
        <Tooltip
         formatter={(value, name) => [`${value}`, "ציון"]}
         labelFormatter={(label) => `כיתה: ${label}`}
@@ -123,8 +107,6 @@ export default function SummaryPopup({ summary, onClose }) {
     </ResponsiveContainer>
   </div>
 </div>
-
-
       </div>
     </div>
   );

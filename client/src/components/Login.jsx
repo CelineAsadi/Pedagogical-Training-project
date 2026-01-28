@@ -1,12 +1,16 @@
+/**
+ * Login Page Component
+ * This file implements the user login page of the application.
+ * It provides a form for users to authenticate using their
+ * email address and password.
+ * Authentication logic is delegated to the auth store,
+ * while this component focuses on user input handling
+ * and basic UI feedback.
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { axiosInstance } from "../lib/axios";
 import "../style/Login.css";
 import { authStore } from "../store/authStore";
-
-/**
- * Handles user login by collecting credentials and authenticating the user.
- */
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -15,21 +19,17 @@ const Login = () => {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
   const {login} = authStore();
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     login({Email:email,password});
   };
-
   return (
     <div className="login-page">
       <div className="login-card">
         <h2>Login</h2>
         <p className="login-subtitle">Welcome back! Please enter your details.</p>
-
         {error && <p className="error">{error}</p>}
         {success && <p className="success">{success}</p>}
-
         <form className="login-form" onSubmit={handleSubmit}>
           <label>Email</label>
           <input
@@ -39,7 +39,6 @@ const Login = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-
           <label>Password</label>
           <input
             type="password"
@@ -48,12 +47,10 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-
           <button type="submit" className="btn-login">
             Login
           </button>
         </form>
-
         <p className="login-footer">
          Forget password? <a href="/Forgetpassword">Reset here</a>
         </p>
@@ -61,5 +58,4 @@ const Login = () => {
     </div>
   );
 };
-
 export default Login;

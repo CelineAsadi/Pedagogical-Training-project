@@ -1,16 +1,25 @@
-// server/src/controllers/event.controller.js
+/**
+ * Event Utilities
+ * ---------------
+ * This file is responsible for translating student disruptions or utterances
+ * into persistent Event records in the database.
+ *
+ * It infers the event type (question vs disruption), prevents duplicate events,
+ * stores relevant metadata, and optionally calculates teacher response time.
+ *
+ * Used mainly in live classroom/session simulations.
+ */
 const EventModel = require("../models/Event");
 
 /**
- * קביעה האם ההפרעה היא "שאלה" או "הפרעה"
+ * Infers the event type based on disruption metadata.
+ * Determines whether a student utterance should be classified as a
+ * "question" or a "disruption".
  */
 function inferEventType(disruption) {
   if (!disruption) return "disruption";
-
   const t = disruption.type || "";
   const text = disruption.utteranceText || "";
-
-  // אם זה פרופיל "קשוב" / "נייטרלי" או שיש סימן שאלה → נחשוב שזה question
   if (
     t === "attentive" ||
     t === "neutral" ||
@@ -18,19 +27,19 @@ function inferEventType(disruption) {
   ) {
     return "question";
   }
-
   return "disruption";
 }
 
 /**
- * יצירת Event במונגו מתוך האובייקט disruption שמגיע מהקליינט
- * + חישוב זמן תגובה של המורה לאותה הפרעה.
- *
- * מחזיר:
- *  { eventDoc, responseTimeInSeconds }
+ * Creates (or retrieves) an Event document from a disruption object.
+ * This function:
+ * - Validates disruption data
+ * - Infers the event type
+ * - Prevents duplicate events
+ * - Persists the event in the database
+ * - Calculates response time (if timestamp exists)
  */
 async function createEventFromDisruption({ sessionId, disruption }) {
-  // אם אין הפרעה / אין studentId / אין טקסט – אין מה ליצור Event
   if (
     !disruption ||
     !disruption.studentId ||
@@ -39,23 +48,16 @@ async function createEventFromDisruption({ sessionId, disruption }) {
   ) {
     return { eventDoc: null, responseTimeInSeconds: null };
   }
-
   const eventType = inferEventType(disruption);
   const ts = disruption.ts ? new Date(disruption.ts) : new Date();
-
-  // 🔁 מנגנון מניעת כפילויות:
-  // עוד תשובת מורה לאותה הפרעה → משתמשים באותו Event קיים
   const existingEvent = await EventModel.findOne({
     sessionId,
     studentId: disruption.studentId,
     content: disruption.utteranceText,
     timestamp: ts,
   });
-
   let eventDoc = existingEvent;
-
   if (!eventDoc) {
-    // אין Event כזה → ניצור חדש
     const eventData = {
       sessionId,
       studentId: disruption.studentId,
@@ -65,13 +67,9 @@ async function createEventFromDisruption({ sessionId, disruption }) {
       timestamp: ts,
       status: "open",
       disruptionId: disruption.disruptionId || null, 
-
     };
-
     eventDoc = await EventModel.create(eventData);
   }
-
-  // חישוב זמן תגובה (אם יש ts מהסוקט)
   let responseTimeInSeconds = null;
   if (disruption.ts) {
     const diffMs = Date.now() - disruption.ts;
@@ -79,9 +77,9 @@ async function createEventFromDisruption({ sessionId, disruption }) {
       responseTimeInSeconds = Math.round(diffMs / 1000);
     }
   }
-
   return { eventDoc, responseTimeInSeconds };
 }
+
 
 module.exports = {
   createEventFromDisruption,

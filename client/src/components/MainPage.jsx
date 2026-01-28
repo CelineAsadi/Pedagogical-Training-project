@@ -1,9 +1,18 @@
+/**
+ * MainPage Component
+ * Renders the main dashboard interface for authenticated users.
+ * The component:
+ * - Loads and displays the logged-in user’s information
+ * - Allows the user to enter and confirm a lesson topic
+ * - Enables starting a standard (basic) virtual classroom
+ * - Provides navigation to custom classroom setup
+ * - Displays a session summary popup when available
+ * - Handles logout and high-level navigation
+ */
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../style/MainPage.css";
 import SummaryPopup from "../components/SummaryPopup";             
-
-
 import { authStore } from "../store/authStore";
 import { mainPageStore } from "../store/mainPageStore";
 
@@ -11,22 +20,13 @@ const MainPage = () => {
   const [user, setUser] = useState(null);
   const [lessonTopic, setLessonTopic] = useState("");
   const [topicConfirmed, setTopicConfirmed] = useState(false);
-
   const location = useLocation();
   const summaryFromNavigation = location.state?.summary || null;
-  
   const [summaryPopup, setSummaryPopup] = useState(summaryFromNavigation);
-  
-
-
   const { logout } = authStore();
   const { fetchUser, startBasicLesson } = mainPageStore();
-
   const navigate = useNavigate();
-
-  // ============================
   // Load user on page load
-  // ============================
   useEffect(() => {
     const load = async () => {
       const u = await fetchUser();
@@ -34,35 +34,25 @@ const MainPage = () => {
     };
     load();
   }, []);
-
   const handleLogout = () => logout();
-
-  // ============================
   // Start basic class
-  // ============================
   const handleEnterBasicClass = async () => {
     if (!lessonTopic.trim()) {
       alert("Please enter lesson topic!");
       return;
     }
-
     const result = await startBasicLesson(lessonTopic);
     if (!result) return;
-
     navigate(
       `/VirtualClassroom?class=${encodeURIComponent(
         result.className
       )}&sessionId=${result.sessionId}&type=basic`
     );
   };
-
   const handleCloseSummary = () => {
     setSummaryPopup(null);
-    // Optional: remove summary from browser history so popup doesn't show again on refresh
     navigate(".", { replace: true });
   };
-
-
   return (
     <div>
       {/* ===== NAVBAR ===== */}
@@ -76,7 +66,6 @@ const MainPage = () => {
             <span className="name">{user?.LName} {user?.FName}</span>
           </div>
         </div>
-
         <ul className="nav-links">
           <li><Link to="/MySimulations">My Simulation</Link></li>
           <li><Link to="/Profile">Profile</Link></li>
@@ -85,7 +74,6 @@ const MainPage = () => {
           </li>
         </ul>
       </nav>
-
       {/* ===== MAIN SECTION ===== */}
       <section className="main-hero">
         <h1>
@@ -94,12 +82,10 @@ const MainPage = () => {
         <p>
           Practice classroom management in a safe, AI-powered environment.
         </p>
-
         {/* ===== TOPIC INPUT ===== */}
         {!topicConfirmed ? (
           <div className="topic-input-container">
             <h3>🧠 Please enter your lesson topic:</h3>
-
             <input
               type="text"
               placeholder="e.g., Fractions, Reading..."
@@ -107,7 +93,6 @@ const MainPage = () => {
               onChange={(e) => setLessonTopic(e.target.value)}
               className="topic-input"
             />
-
             <button
               className="btn"
               onClick={() => {
@@ -127,7 +112,6 @@ const MainPage = () => {
             <button className="btn" onClick={handleEnterBasicClass}>
               ENTER THE STANDARD VIRTUAL CLASSROOM
             </button>
-
             <button
               className="btn"
               onClick={() =>
@@ -139,14 +123,12 @@ const MainPage = () => {
           </div>
         )}
       </section>
-
       {/* ===== INFO SECTION ===== */}
       <section className="classroom-info">
         <h2>🎓 Standard Virtual Classroom Overview</h2>
         <p>
           Includes <strong>15 students</strong> with realistic classroom behaviors.
         </p>
-
         <div className="student-summary">
           <ul>
             <li>👀 3 Attentive</li>
@@ -160,12 +142,10 @@ const MainPage = () => {
             <li>🙂 1 Neutral</li>
           </ul>
         </div>
-
         <p className="duration">
           ⏱️ <strong>Lesson Duration:</strong> 5 minutes
         </p>
       </section>
-
       {/* ===== FOOTER ===== */}
       <footer className="footer">
         <div className="footer-container">
@@ -173,7 +153,6 @@ const MainPage = () => {
             <h3>Pedagogical Training</h3>
             <p>AI-powered teaching improvement platform.</p>
           </div>
-
           <div className="footer-section">
             <h4>Quick Links</h4>
             <ul>
@@ -181,7 +160,6 @@ const MainPage = () => {
               <li><a href="/PrivacyPolicy">Privacy Policy</a></li>
             </ul>
           </div>
-
           <div className="footer-section">
             <h4>Follow Us</h4>
             <div className="social-icons">
@@ -191,7 +169,6 @@ const MainPage = () => {
             </div>
           </div>
         </div>
-
         <div className="footer-bottom">
           <p>© 2025 Pedagogical Training</p>
         </div>
@@ -202,9 +179,7 @@ const MainPage = () => {
     onClose={handleCloseSummary}
   />
 )}
-
     </div>
   );
 };
-
 export default MainPage;

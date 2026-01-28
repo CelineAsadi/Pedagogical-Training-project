@@ -1,4 +1,3 @@
-/* Navbar */
 .navbar {
   display: flex;
   justify-content: space-between;
@@ -10,20 +9,16 @@
   top: 0;
   z-index: 1000;
 }
-
-/* Left side: Logo + Hello User */
 .left-section {
   display: flex;
   align-items: center;
   gap: 80px;
 }
-
 .logo img {
   height: 60px;
   border-radius: 10px;
   cursor: pointer;
 }
-
 .username {
   font-size: 18px;
   font-weight: bold;
@@ -31,67 +26,52 @@
   align-items: center;
   gap: 5px;
 }
-
 .hello {
   color: #000;
   font-weight: 500;
 }
-
 .name {
   color: #0056b3;
   font-weight: bold;
 }
-
-/* Right side: Nav links */
 .nav-links {
   list-style: none;
   display: flex;
   gap: 25px;
   align-items: center;
 }
-
 .nav-links li a {
   text-decoration: none;
   color: #333;
   font-weight: 500;
   transition: color 0.3s;
 }
-
 .nav-links li a:hover {
   color: #0056b3;
 }
-
-/* Hero Section */
 .main-hero {
   text-align: center;
   padding: 100px 20px;
   background: linear-gradient(135deg, #eef5ff, #ffffff);
 }
-
 .main-hero h1 {
   font-size: 40px;
   margin-bottom: 20px;
   color: #222;
 }
-
 .main-hero h1 span {
   color: #0056b3;
 }
-
 .main-hero p {
   font-size: 18px;
   color: #555;
   margin-bottom: 40px;
 }
-
-
-/* Buttons Section */
 .buttons {
   display: flex;
   justify-content: center;
   gap: 30px;
 }
-
 .btn {
   display: inline-block;      
   padding: 10px 24px;
@@ -105,17 +85,12 @@
   color: #0056b3;
   text-transform: uppercase;
 }
-
-/* Hover */
 .btn:hover,
 .btn:focus {
   background: #0056b3;
   color: #fff;
   outline: none;
 }
-
-
-/* Logout button */
 .logout-btn {
   background: transparent;
   border: none;
@@ -123,21 +98,17 @@
   cursor: pointer;
   transition: color 0.3s;
 }
-
 .logout-btn:hover,
 .logout-btn:focus {
   color: #ff0000;
   outline: none;
 }
-
-/* Footer */
 .footer {
   background: #0a192f;
   color: #fff;
   padding: 40px 20px 20px;
   margin-top: 60px;
 }
-
 .footer-container {
   display: flex;
   justify-content: space-between;
@@ -146,53 +117,43 @@
   margin: 0 auto;
   gap: 40px;
 }
-
 .footer-section h3,
 .footer-section h4 {
   margin-bottom: 15px;
   color: #00aaff;
 }
-
 .footer-section p {
   font-size: 14px;
   line-height: 1.6;
   color: #ccc;
 }
-
 .footer-section ul {
   list-style: none;
   padding: 0;
 }
-
 .footer-section ul li {
   margin-bottom: 10px;
 }
-
 .footer-section ul li a {
   text-decoration: none;
   color: #ccc;
   transition: color 0.3s;
 }
-
 .footer-section ul li a:hover {
   color: #00aaff;
 }
-
 .social-icons {
   display: flex;
   gap: 15px;
 }
-
 .social-icons a {
   font-size: 20px;
   color: #ccc;
   transition: color 0.3s;
 }
-
 .social-icons a:hover {
   color: #00aaff;
 }
-
 .footer-bottom {
   margin-top: 30px;
   text-align: center;
@@ -201,7 +162,6 @@
   padding-top: 15px;
   color: #888;
 }
-/* Classroom Info Section */
 .classroom-info {
   background: #f9fbff;
   margin: 60px auto;
@@ -211,25 +171,21 @@
   text-align: center;
   box-shadow: 0 8px 20px rgba(0,0,0,0.05);
 }
-
 .classroom-info h2 {
   color: #0056b3;
   margin-bottom: 20px;
   font-size: 26px;
 }
-
 .classroom-info p {
   color: #333;
   font-size: 16px;
   margin-bottom: 20px;
 }
-
 .student-summary {
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
 }
-
 .student-summary ul {
   list-style: none;
   padding: 0;
@@ -237,13 +193,11 @@
   columns: 2;
   column-gap: 50px;
 }
-
 .student-summary li {
   font-size: 15px;
   color: #444;
   padding: 4px 0;
 }
-
 .duration {
   font-size: 16px;
   color: #0056b3;
@@ -253,7 +207,6 @@
   margin-top: 20px;
   text-align: center;
 }
-
 .topic-input {
   padding: 10px;
   font-size: 16px;

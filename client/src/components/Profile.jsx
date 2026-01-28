@@ -1,17 +1,22 @@
+/**
+ * Profile
+ * Displays and manages the teacher’s personal profile.
+ * Responsibilities:
+ * - Load authenticated user data into a controlled form
+ * - Allow profile updates with validation
+ * - Handle secure email change with verification code flow
+ * - Reflect changes visually (avatar based on gender)
+ * - Provide navigation and logout functionality
+ * Security:
+ * - Prevents profile update if a new email is not verified
+ * - Uses authenticated store actions only
+ */
 import "../style/Profile.css";
 import { authStore } from "../store/authStore";
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-
-/**
- * Manages user profile viewing and editing, including email verification
- * and profile updates.
- */
-
+import { Link } from "react-router-dom";
 const Profile = () => {
   const { authUser, logout, updateProfile, verifyNewEmail } = authStore();
-
-
   const [formData, setFormData] = useState({
     FName: "",
     LName: "",
@@ -20,7 +25,6 @@ const Profile = () => {
     Classlevel: "",
     TeachExp: ""
   });
-
   const [emailVerified, setEmailVerified] = useState(true); 
   const [verificationCode, setVerificationCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
@@ -38,43 +42,33 @@ const Profile = () => {
     }
   }, [authUser]);
   const handleLogout = () => logout();
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-
     if (e.target.name === "Email" && e.target.value !== authUser?.Email) {
       setEmailVerified(false); 
       setCodeSent(false);
     }
   };
-
-
   const handleSendCode = async () => {
     const ok = await verifyNewEmail({ step: "request", Email: formData.Email });
     if (ok) setCodeSent(true);
   };
-
-
   const handleVerifyCode = async () => {
     const ok = await verifyNewEmail({ step: "verify", Email: formData.Email, code: verificationCode });
     if (ok) setEmailVerified(true);
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!emailVerified) {
       alert("Please verify your new email before updating!");
       return;
     }
-
     const updatedData = {
       ...formData,
       ProfileImage: formData.Gender === "Female" ? "/female.png" : "/male.png",
     };
-
     updateProfile(updatedData);
   };
-
   const handleCancel = () => {
     if (authUser) {
       setFormData({
@@ -90,7 +84,6 @@ const Profile = () => {
       setVerificationCode("");
     }
   };
-
   return (
     <div className="profile-page">
       {/* Navbar */}
@@ -110,7 +103,6 @@ const Profile = () => {
           </li>
         </ul>
       </nav>
-
       {/* Profile Form */}
       <div className="profile-container">
         <div className="profile-avatar">
@@ -120,13 +112,11 @@ const Profile = () => {
           />
           <p className="avatar-caption">{formData.FName} {formData.LName}</p>
         </div>
-
         <div className="profile-form-section">
           <h2>Update Profile</h2>
           <p className="subtitle">
             Update your profile to reflect the <span>latest version</span> of yourself ✨
           </p>
-
           <form className="profile-form" onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
@@ -138,7 +128,6 @@ const Profile = () => {
                 <input type="text" name="LName" value={formData.LName} onChange={handleChange}/>
               </div>
             </div>
-
             <div className="form-group">
               <label>Email</label>
               <input type="email" name="Email" value={formData.Email} onChange={handleChange}/>
@@ -164,7 +153,6 @@ const Profile = () => {
                 </div>
               )}
             </div>
-
             <div className="form-group">
               <label>Gender</label>
               <select name="Gender" value={formData.Gender} onChange={handleChange}>
@@ -173,7 +161,6 @@ const Profile = () => {
                 <option value="Male">Male</option>
               </select>
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Class Level (3-6)</label>
@@ -185,7 +172,6 @@ const Profile = () => {
                   <option value="6">6</option>
                 </select>
               </div>
-
               <div className="form-group">
                 <label>Teaching Experience</label>
                 <select name="TeachExp" value={formData.TeachExp} onChange={handleChange}>
@@ -196,7 +182,6 @@ const Profile = () => {
                 </select>
               </div>
             </div>
-
             <div className="form-buttons">
               <button type="button" className="btn cancel" onClick={handleCancel}>Cancel</button>
               <button type="submit" className="btn update" disabled={!emailVerified}>
@@ -209,5 +194,4 @@ const Profile = () => {
     </div>
   );
 };
-
 export default Profile;

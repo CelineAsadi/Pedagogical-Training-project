@@ -1,3 +1,11 @@
+/**
+ * LessonSettings Model
+ * This file defines the schema for storing classroom (lesson) configurations
+ * created by users.
+ * Each document represents a reusable classroom setup that defines
+ * lesson duration, class size, student behavior distribution,
+ * and the pedagogical context of the lesson.
+ */
 const mongoose = require("mongoose");
 const lessonSettingsSchema = new mongoose.Schema({
   userId: {
@@ -29,12 +37,9 @@ const lessonSettingsSchema = new mongoose.Schema({
       count: { type: Number, required: true, min: 0 },
     },
   ],
-   lessonTopic: { type: String, default: "", required: true }, //  add
+   lessonTopic: { type: String, default: "", required: true },
 }, { timestamps: true });
-
-// ⚙️ אינדקס חדש: שם כיתה ייחודי למשתמש עצמו
 lessonSettingsSchema.index({ userId: 1, className: 1 }, { unique: true });
-// 🔥 For fast pagination sorted by creation time
 lessonSettingsSchema.index({ userId: 1, createdAt: -1 });
 
 const LessonSettings = mongoose.model("LessonSettings", lessonSettingsSchema);

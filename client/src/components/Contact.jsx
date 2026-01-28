@@ -1,12 +1,25 @@
+/**
+ * Contact Page Component
+ * This file implements the "Contact Us" page of the client application.
+ * It provides a user-facing form that allows visitors to send
+ * questions, feedback, or collaboration requests to the system
+ * administrators via the backend support API.
+ * The component manages form state locally and delegates
+ * submission logic to the support store.
+ */
 import { useState } from "react";
-import { axiosInstance } from "../lib/axios";
 import "../style/Contact.css";
 import { supportStore } from "../store/supportStore";
 import { useNavigate } from "react-router-dom";
 
-// The Contact component provides a contact form that collects user details and messages, 
-// sends the data to the system via the support store, and redirects the user to the home page after a successful submission.
-
+/**
+ * Renders a contact form that enables users to send messages
+ * to the platform’s support team.
+ * The component:
+ * - Manages form input state (name, email, subject, message)
+ * - Submits the form via the support store
+ * - Redirects the user upon successful submission
+ */
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -14,27 +27,20 @@ const Contact = () => {
     subject: "",
     message: "",
   });
-
   const { contactUs } = supportStore();
   const navigate = useNavigate(); 
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    //contactUs(formData);
     const success = await contactUs(formData); 
-
     if (success) {
  setTimeout(() => {
       navigate("/");
     }, 500);   
     }
   };
-
-
   return (
     <div className="contact-page">
       <div className="contact-card">
@@ -43,7 +49,6 @@ const Contact = () => {
           We’d love to hear from you! <br />
           Feel free to reach out with any questions, feedback, or collaboration ideas.
         </p>
-
         <form className="contact-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Name</label>
@@ -56,7 +61,6 @@ const Contact = () => {
               required
             />
           </div>
-
           <div className="form-group">
             <label>Email</label>
             <input
@@ -68,7 +72,6 @@ const Contact = () => {
               required
             />
           </div>
-
           <div className="form-group">
             <label>Subject</label>
             <input
@@ -80,7 +83,6 @@ const Contact = () => {
               required
             />
           </div>
-
           <div className="form-group">
             <label>Message</label>
             <textarea
@@ -91,12 +93,10 @@ const Contact = () => {
               required
             />
           </div>
-
           <button type="submit" className="btn-send">Send</button>
         </form>
       </div>
     </div>
   );
 };
-
 export default Contact;

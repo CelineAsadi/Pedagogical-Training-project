@@ -1,5 +1,11 @@
+/**
+ * User Model
+ * This file defines the schema for system users (teachers).
+ * A user represents a teacher participating in the pedagogical
+ * training platform and serves as the owner of lessons,
+ * sessions, and classroom simulations.
+ */
 const mongoose = require("mongoose");
-
 const userSchema = new mongoose.Schema({
   FName: { type: String, required: true },
   LName: { type: String, required: true },

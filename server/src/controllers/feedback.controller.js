@@ -1,27 +1,43 @@
-// server/src/controllers/feedback.controller.js
-
+/**
+ * Teacher Response Controller
+ * ---------------------------
+ * This file handles saving teacher responses during a live session.
+ *
+ * It connects teacher responses to student events (questions or disruptions),
+ * normalizes voice features, updates event status, and generates AI-based
+ * pedagogical feedback using GPT analysis.
+ *
+ * Main responsibilities:
+ * - Store teacher responses
+ * - Link responses to events
+ * - Calculate response time
+ * - Analyze response quality using AI
+ * - Persist structured feedback
+ */
 const ResponseModel = require("../models/Response");
 const FeedbackModel = require("../models/Feedback");
 const { analyzeTeacherResponse } = require("../services/gptFeedback.service");
-const {
-  createEventFromDisruption,
-} = require("./event.controller");
+const {createEventFromDisruption,} = require("./event.controller");
 
-
-
-
-// POST /api/feedback/teacher-response
+/**
+ * Saves a teacher's verbal/textual response during a session.
+ * This function:
+ * - Validates required input
+ * - Normalizes voice features
+ * - Creates or links an Event (question/disruption)
+ * - Stores the teacher response
+ * - Updates event status
+ * - Triggers AI-based pedagogical feedback analysis
+ */
 async function saveTeacherResponse(req, res) {
   try {
     const { sessionId, teacherText, voiceFeatures, disruption } = req.body;
-
     if (!teacherText || !sessionId) {
       return res.status(400).json({
         ok: false,
-        message: "sessionId ו-teacherText הם שדות חובה",
+        message: "must fileds sessionId & teacherText",
       });
     }
-
     const normalizedVoiceFeatures = {
       volume:
         typeof voiceFeatures?.volume === "number"
@@ -36,38 +52,27 @@ async function saveTeacherResponse(req, res) {
           ? voiceFeatures.tone
           : null,
     };
-
-        // ✨ יצירת Event במונגו הועברה ל-event.controller.js
     const { eventDoc, responseTimeInSeconds } =
       await createEventFromDisruption({ sessionId, disruption });
-
-
     const responseDoc = await ResponseModel.create({
-      sessionId, // 🔗 Session אמיתי
+      sessionId, 
       eventId: eventDoc ? eventDoc._id : undefined,
-     // studentId: disruption?.studentId || null,
       teacherText,
-      //audioPath: null,
       responseTimeInSeconds,
-      //emotion: null,
       voiceFeatures: normalizedVoiceFeatures,
       isGeneral: !eventDoc,
     });
-
     if (eventDoc) {
       eventDoc.status = "answered";
       await eventDoc.save();
     }
-
     let feedbackDoc = null;
-
     try {
       const gptResult = await analyzeTeacherResponse({
         disruption: disruption || null,
         teacherText,
         voiceFeatures: normalizedVoiceFeatures,
       });
-
       feedbackDoc = await FeedbackModel.create({
         sessionId,
         responseId: responseDoc._id,
@@ -77,7 +82,6 @@ async function saveTeacherResponse(req, res) {
     } catch (gptErr) {
       console.error("⚠️ GPT analyzeTeacherResponse failed:", gptErr);
     }
-
     return res.json({
       ok: true,
       sessionId,

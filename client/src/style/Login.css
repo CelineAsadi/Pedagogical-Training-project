@@ -5,7 +5,6 @@
   min-height: 90vh;
   background: #f9f9f9;
 }
-
 .login-card {
   background: #fff;
   padding: 40px 30px;
@@ -15,32 +14,27 @@
   max-width: 400px;
   text-align: center;
 }
-
 .login-card h2 {
   margin-bottom: 10px;
   color: #0056b3;
   font-size: 28px;
 }
-
 .login-subtitle {
   margin-bottom: 20px;
   font-size: 14px;
   color: #777;
 }
-
 .login-form {
   display: flex;
   flex-direction: column;
   text-align: left;
 }
-
 .login-form label {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 6px;
   color: #333;
 }
-
 .login-form input {
   padding: 12px;
   margin-bottom: 18px;
@@ -48,13 +42,11 @@
   border-radius: 8px;
   font-size: 15px;
 }
-
 .login-form input:focus {
   border-color: #0056b3;
   outline: none;
   box-shadow: 0 0 4px rgba(0,86,179,0.3);
 }
-
 .btn-login {
   background: #0056b3;
   color: #fff;
@@ -66,23 +58,19 @@
   cursor: pointer;
   transition: background 0.3s;
 }
-
 .btn-login:hover {
   background: #003f82;
 }
-
 .login-footer {
   margin-top: 20px;
   font-size: 14px;
   color: #555;
 }
-
 .login-footer a {
   color: #0056b3;
   text-decoration: none;
   font-weight: 600;
 }
-
 .login-footer a:hover {
   text-decoration: underline;
 }
@@ -93,7 +81,6 @@
   text-align: center;
   font-weight: bold;
 }
-
 .success {
   color: green;
   font-size: 14px;
@@ -101,5 +88,3 @@
   text-align: center;
   font-weight: bold;
 }
-
-

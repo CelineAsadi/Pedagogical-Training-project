@@ -2,8 +2,22 @@ import {create} from "zustand";
 import { axiosInstance } from "../lib/axios";
 import { Navigate } from "react-router-dom";
 import toast from "react-hot-toast";
+/**
+ * Authentication Store (Zustand)
+ * This store manages:
+ * - User authentication state
+ * - Login / Logout / Signup flows
+ * - Email verification & password reset
+ * - Profile updates
+ * It communicates with the backend via Axios
+ * and provides global auth state to the client.
+ */
 export const authStore = create((set,get)=>({
     authUser:null,
+     /**
+   * Checks if the user is already authenticated
+   * (used on app load / refresh).
+   */
     checkAuth: async()=>{
         try {
         const res = await axiosInstance.get("/auth/check");
@@ -13,7 +27,7 @@ export const authStore = create((set,get)=>({
             set({authUser:null});
         }
     },
-
+    //Logs in a user with email & password.
     login: async(data)=>{
     try{
         const res = await axiosInstance.post('/auth/Login',data);
@@ -21,14 +35,12 @@ export const authStore = create((set,get)=>({
         toast.success("Logged in succesfully");
     } catch(err){
         console.log("Error in Login: ",err);
-
         const message = err.response?.data?.message || "Login failed";
         toast.error(message);
-
         set({authUser:null});
     }
 },
-
+//Logs out the current user and clears auth state.
     logout: async()=>{
         try{
             const res = await axiosInstance.post('/auth/Logout');
@@ -37,9 +49,9 @@ export const authStore = create((set,get)=>({
          }  catch(err){
              console.log("Error in logout: ",err);
              toast.error(err.response.data.message);
-            }
-        
+            } 
     },
+    //Registers a new user.
     signup: async(data)=>{
         try{
         const res = await axiosInstance.post('/auth/Signup',data);
@@ -50,6 +62,10 @@ export const authStore = create((set,get)=>({
             toast.error(err.response.data.message);
         }
     },
+    /**
+   * Sends a verification code to the user's email
+   * (used for password reset).
+   */
    VerifyEmail: async(data)=>{
         try{
             await axiosInstance.post("/auth/Forgetpassword",data);
@@ -61,7 +77,7 @@ export const authStore = create((set,get)=>({
             return false;
         }
     },
-
+    //Resets the user's password using a verification code.
     ResetPassword : async(data)=>{
         try{
             await axiosInstance.post("/auth/Forgetpassword",data);
@@ -73,6 +89,7 @@ export const authStore = create((set,get)=>({
             return false;
         }
     },
+    //Updates the user's profile details.
     updateProfile: async (data)=> {
   try {
     const res = await axiosInstance.put("/auth/Profile", data);
@@ -83,6 +100,7 @@ export const authStore = create((set,get)=>({
     toast.error(err.response?.data?.message || "Failed to updateProfile");
   }
 },
+//Verifies a new email address before updating it.
 verifyNewEmail: async(data) => {
   try {
     const res = await axiosInstance.post("/auth/verify-email-update", data);

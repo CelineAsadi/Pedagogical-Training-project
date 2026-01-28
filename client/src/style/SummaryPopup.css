@@ -1,4 +1,3 @@
-/* ===== OVERLAY ===== */
 .summary-overlay {
   position: fixed;
   inset: 0;
@@ -7,11 +6,9 @@
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  direction: rtl; /* ← RTL */
-  text-align: right; /* ← Align text to right */
+  direction: rtl;
+  text-align: right; 
 }
-
-/* ===== POPUP WINDOW ===== */
 .summary-window {
   width: 850px;
   max-height: 90vh;
@@ -20,18 +17,15 @@
   border-radius: 14px;
   padding: 30px 35px;
   position: relative;
-
   box-shadow: 0px 12px 35px rgba(0,0,0,0.16);
   animation: fadeIn 0.25s ease-out;
   font-family: "Inter", sans-serif;
-  direction: rtl;     /* ← כל התוכן יהיה RTL */
-  text-align: right;  /* ← יישור לימין */
+  direction: rtl;     
+  text-align: right; 
 }
-
-/* Close button */
 .summary-close {
   position: absolute;
-  left: 18px; /* ← היה right, עכשיו left */
+  left: 18px; 
   top: 12px;
   background: none;
   border: none;
@@ -43,8 +37,6 @@
 .summary-close:hover {
   color: #ff4f4f;
 }
-
-/* Title */
 .summary-title {
   font-size: 26px;
   font-weight: 700;
@@ -52,44 +44,33 @@
   text-align: center;
   color: #2d4f8b;
 }
-
-/* sections */
 .summary-section {
   background: #f7f9fc;
   padding: 16px 20px;
   border-radius: 10px;
   margin-bottom: 20px;
-
-  border-right: 4px solid #4e8cff; /* ← היה left, עכשיו right */
+  border-right: 4px solid #4e8cff;
   border-left: none;
 }
-
 .summary-section h3 {
   margin-top: 0;
   color: #2d4f8b;
   font-size: 20px;
   text-align: right;
 }
-
-/* ===== GRAPH WRAPPER ===== */
 .graph-container {
   width: 100%;
   height: 260px;
   padding: 10px;
   background: #ffffff;
   border-radius: 12px;
-
   border: 1px solid #dfe7f1;
   box-shadow: inset 0 0 12px rgba(0,0,0,0.05);
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  direction: ltr; /* ← הגרף עצמו ל-LTR כדי שלא יתבלגן */
+  direction: ltr;
 }
-
-/* Tooltip text */
 .recharts-tooltip-wrapper {
   font-size: 14px;
   background: white !important;
@@ -98,8 +79,6 @@
   direction: rtl;
   text-align: right;
 }
-
-/* Fade animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }

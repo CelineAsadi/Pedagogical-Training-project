@@ -1,18 +1,31 @@
-// server/src/services/gptFeedback.service.js
+/**
+ * GPT Teacher Response Analysis Service
+ * This file implements AI-based evaluation of teacher responses
+ * during classroom simulations.
+ * It analyzes the teacher’s textual response together with
+ * optional voice features (volume, pitch, tone) and the preceding
+ * student disruption (if any).
+ * The service returns structured pedagogical scoring and
+ * qualitative feedback intended to help teachers reflect
+ * and improve their classroom management skills.
+ * This module is purely analytical and does not persist data.
+ */
 const OpenAI = require("openai");
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
- * ניתוח תגובת המורה:
- * - teacherText: מה הוא/היא אמר/ה
- * - voiceFeatures: { volume, pitch, tone }
- * - disruption: מה הייתה ההפרעה (יכול להיות null)
- *
- * מחזיר:
- * {
- *   scoring: { timing, tone, pedagogy, overall },
- *   feedbackText: "טקסט פידבק קצר בעברית"
- * }
+ * Analyzes a teacher's response to a classroom situation using GPT.
+ * This function:
+ * - Receives the teacher’s response text
+ * - Considers the preceding student disruption (if exists)
+ * - Incorporates voice analysis indicators (volume, pitch, tone)
+ * - Requests multi-dimensional pedagogical evaluation from GPT
+ * - Parses and normalizes the AI-generated feedback
+ * The evaluation includes scores for:
+ * - Timing (response promptness)
+ * - Tone (emotional and relational quality)
+ * - Pedagogy (educational handling of the situation)
+ * - Overall performance
  */
 async function analyzeTeacherResponse({
   disruption,
@@ -23,7 +36,6 @@ async function analyzeTeacherResponse({
   const disruptionLabel = disruption?.label || "";
   const studentName = disruption?.studentName || "תלמיד/ה";
   const type = disruption?.type || "לא ידוע";
-
   const vol =
     typeof voiceFeatures.volume === "number" ? voiceFeatures.volume : 0;
   const pitch =
@@ -32,7 +44,6 @@ async function analyzeTeacherResponse({
     typeof voiceFeatures.tone === "string" && voiceFeatures.tone.trim()
       ? voiceFeatures.tone.trim()
       : "unknown";
-
   const systemPrompt = `
 אתה מעריך תגובות של מורים להפרעות בכיתה.
 
@@ -71,10 +82,8 @@ async function analyzeTeacherResponse({
 
 היה ענייני, מקצועי, ושים דגש על למידה ושיפור, לא על שיפוטיות.
 `;
-
   const userPrompt = `
 מידע על ההקשר בכיתה:
-
 ${
   disruptionText
     ? `הייתה הפרעה לפני התגובה:
@@ -83,7 +92,6 @@ ${
 - טקסט התלמיד: "${disruptionText}"`
     : `אין הפרעה ספציפית – זו תגובה כללית של המורה בשיעור.`
 }
-
 תגובת המורה (טקסט מלא):
 "${teacherText}"
 
@@ -91,9 +99,7 @@ ${
 - volume (0–1 בערך): ${vol.toFixed(4)}
 - pitch (Hz בערך): ${pitch.toFixed(2)}
 - tone label: "${toneLabel}"
-
 החזר JSON בלבד במבנה הבא (ללא טקסט לפני/אחרי, ללא הערות):
-
 {
   "timing": מספר בין 0 ל-10,
   "tone": מספר בין 0 ל-10,
@@ -102,7 +108,6 @@ ${
   "feedback": "טקסט פידבק קצר בעברית (3–5 משפטים, מותאם למורה, לא לתלמידים)"
 }
 `;
-
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
@@ -112,15 +117,12 @@ ${
     temperature: 0.3,
     max_tokens: 250,
   });
-
   const raw = completion.choices[0].message.content?.trim() || "";
-
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch (e) {
     console.error("❌ Failed to parse GPT feedback JSON, raw:", raw);
-    // fallback בסיסי – שלא נקרוס
     parsed = {
       timing: 5,
       tone: 5,
@@ -129,7 +131,6 @@ ${
       feedback: "לא ניתן היה לנתח את התגובה, נסה שוב מאוחר יותר.",
     };
   }
-
   return {
     scoring: {
       timing: parsed.timing,

@@ -1,28 +1,42 @@
+/**
+ * User Controller
+ * ----------------
+ * This file contains all user-related business logic for the application.
+ * It handles authentication, authorization, profile management,
+ * password recovery, email verification, and lesson settings management.
+ *
+ * Technologies used:
+ * - Node.js / Express
+ * - MongoDB (Mongoose)
+ * - JWT (via cookies)
+ * - bcrypt for password hashing
+ * - Email service for verification codes
+ */
 const User = require('../models/user.model');
 const bcrypt = require("bcryptjs");
 const generateToken = require("../lib/utlis");
 const {sendEmail, generateFourDigitCode} = require('../lib/mailer');
-
+/**
+ * Registers a new user in the system.
+ *
+ * Validates input fields, hashes the password, saves the user in the database,
+ * generates an authentication token, and sets it as a cookie.
+ */
 const Signup = async (req,res)=>{
     const { FName, LName, Email, password, Gender, Classlevel, TeachExp } = req.body;
-
   try {
     if (!FName || !LName || !Email || !password || !Gender || !Classlevel || ! TeachExp) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
     if (password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
-
     const existingUser = await User.findOne({ Email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
-
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
     const newUser = new User({
       FName,
       LName,
@@ -49,6 +63,10 @@ const Signup = async (req,res)=>{
   }
 };
 
+/**
+ * Authenticates a user using email and password.
+ * If credentials are valid, generates a JWT token and stores it in a cookie.
+ */
 const Login = async(req,res)=>{
     const { Email, password } = req.body;
     console.log(req.body);
@@ -73,7 +91,10 @@ const Login = async(req,res)=>{
   }
 };
 
-
+/**
+ * Logs out the currently authenticated user.
+ * Clears the authentication cookie.
+ */
 const Logout = (req,res)=>{
     try {
         res.cookie('pedaTrain', '', { maxAge: 0 });
@@ -84,6 +105,10 @@ const Logout = (req,res)=>{
     }
 };
 
+/**
+ * Checks if the user is authenticated.
+ * Uses user data injected by authentication middleware.
+ */
 const checkAuth=(req,res)=>{
     try {
     res.status(200).json({
@@ -101,8 +126,15 @@ const checkAuth=(req,res)=>{
 };
 
 const verificationCodes = {};
-
-// ================= Forget Password ====================
+/**
+ * Handles the password reset process in two steps:
+ * Step 1 ("request"):
+ * - Generates a 4-digit verification code
+ * - Sends the code to the user's email
+ * Step 2 ("reset"):
+ * - Verifies the code
+ * - Hashes and updates the new password
+ */
 const Forgetpassword = async (req, res) => {
   try {
     const { step, Email, code, newPassword } = req.body;
@@ -142,10 +174,12 @@ const Forgetpassword = async (req, res) => {
   }
 };
 
-const MainPage = (req,res)=>{
-
-};
-// ======= Update Profile =========
+const MainPage = (req,res)=>{};
+/**
+ * Updates the authenticated user's profile information.
+ * Only provided fields are updated.
+ * Email is validated to allow Gmail and Outlook only.
+ */
 const updateProfile = async (req, res) => {
   try {
     const { FName, LName, Email, Gender, Classlevel, TeachExp } = req.body;
@@ -173,9 +207,14 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// ===== Verify Email Update =====
 const verificationCodesForEmailUpdate = {}; 
-
+/**
+ * Verifies a new email address before updating it.
+ * Step 1 ("request"):
+ * - Sends a verification code to the new email
+ * Step 2 ("verify"):
+ * - Confirms the verification code
+ */
 const verifyEmailUpdate = async (req, res) => {
   try {
     const { step, Email, code } = req.body;
@@ -218,14 +257,16 @@ const verifyEmailUpdate = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-const LessonSettings = require("../models/LessonSettings");
 
+const LessonSettings = require("../models/LessonSettings");
+/**
+ * Saves or updates lesson configuration for the authenticated user.
+ * Validates that the sum of student types equals the class size.
+ */
 exports.saveLessonSettings = async (req, res) => {
   try {
-    const userId = req.user._id; // מתקבל מה-token (middleware)
+    const userId = req.user._id; 
     const { classSize, duration, studentTypes } = req.body;
-
-    // חישוב סכום כל התלמידים
     const totalStudents = studentTypes.reduce((sum, t) => sum + t.count, 0);
 
     if (totalStudents !== classSize) {
@@ -233,13 +274,11 @@ exports.saveLessonSettings = async (req, res) => {
         .status(400)
         .json({ message: "Total students must equal class size" });
     }
-
     const settings = await LessonSettings.findOneAndUpdate(
       { userId },
       { classSize, duration, studentTypes },
       { new: true, upsert: true }
     );
-
     res.status(200).json({
       message: "Lesson settings saved successfully",
       settings,
@@ -250,6 +289,10 @@ exports.saveLessonSettings = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves lesson settings for the authenticated user.
+ * If no settings exist, returns a default indicator.
+ */
 exports.getLessonSettings = async (req, res) => {
   try {
     const userId = req.user._id;
